@@ -65,6 +65,7 @@ import helium314.keyboard.latin.common.ViewOutlineProviderUtilsKt;
 import helium314.keyboard.latin.define.DebugFlags;
 import helium314.keyboard.latin.inputlogic.InputLogic;
 import helium314.keyboard.latin.personalization.PersonalizationHelper;
+import helium314.keyboard.latin.settings.Defaults;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsSubtype;
 import helium314.keyboard.latin.settings.SettingsValues;
@@ -1004,11 +1005,21 @@ public class LatinIME extends InputMethodService implements
         if (!mHandler.hasPendingResumeSuggestions()) {
             mHandler.cancelUpdateSuggestionStrip();
             setNeutralSuggestionStrip();
+            if (KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_IDLE_PREDICTIONS,
+                    Defaults.PREF_OCTOPUS_IDLE_PREDICTIONS)
+                    && currentSettingsValues.needsToLookupSuggestions()
+                    && !currentSettingsValues.mInputAttributes.mIsPasswordField) {
+                // Original Octopus showed useful predictions before the first character was typed.
+                // HeliBoard already supports empty-composer next-word/unigram predictions; request
+                // them immediately instead of waiting for the first key event.
+                mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
+            }
             if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar && !tryShowClipboardSuggestion()) {
                 mSuggestionStripView.setToolbarVisibility(true);
             }
         }
 
+        updateOctopusSplitSpacebarState();
         mainKeyboardView.setMainDictionaryAvailability(mDictionaryFacilitator.hasAtLeastOneInitializedMainDictionary());
         mainKeyboardView.setKeyPreviewPopupEnabled(currentSettingsValues.mKeyPreviewPopupOn);
         mainKeyboardView.setSlidingKeyInputPreviewEnabled(currentSettingsValues.mSlidingKeyInputPreviewEnabled);
@@ -1099,6 +1110,7 @@ public class LatinIME extends InputMethodService implements
                 return;
             mKeyboardSwitcher.updateShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
         }
+        updateOctopusSplitSpacebarState();
     }
 
     /**
@@ -1498,6 +1510,29 @@ public class LatinIME extends InputMethodService implements
         return null != mSuggestionStripView;
     }
 
+    private void updateOctopusSplitSpacebarState() {
+        final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
+        if (mainKeyboardView == null) {
+            return;
+        }
+        final SettingsValues settingsValues = mSettings.getCurrent();
+        boolean active = KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
+                Defaults.PREF_OCTOPUS_SPLIT_SPACEBAR)
+                && !settingsValues.mInputAttributes.mIsPasswordField
+                && mInputLogic.isOctopusSplitSpacebarState();
+
+        // A freshly opened/restarted field may have a real trailing space even though
+        // InputLogic's transient space state was reset. Preserve Octopus' between-word UI.
+        if (!active && KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
+                Defaults.PREF_OCTOPUS_SPLIT_SPACEBAR)
+                && !settingsValues.mInputAttributes.mIsPasswordField) {
+            final CharSequence beforeCursor = mInputLogic.mConnection.getTextBeforeCursor(1, 0);
+            active = beforeCursor != null && beforeCursor.length() > 0
+                    && beforeCursor.charAt(beforeCursor.length() - 1) == Constants.CODE_SPACE;
+        }
+        mainKeyboardView.setOctopusSplitSpacebarActive(active);
+    }
+
     private void setSuggestedWords(final SuggestedWords suggestedWords) {
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
         mInputLogic.setSuggestedWords(suggestedWords);
@@ -1505,6 +1540,7 @@ public class LatinIME extends InputMethodService implements
         if (mainKeyboardView != null) {
             mainKeyboardView.setOctopusSuggestions(suggestedWords);
         }
+        updateOctopusSplitSpacebarState();
 
         // Keep HeliBoard generating/ranking suggestions for Octopus, but never render
         // the normal top suggestion strip in this branch.
@@ -1672,6 +1708,7 @@ public class LatinIME extends InputMethodService implements
         if (inputTransaction.didAffectContents()) {
             mSubtypeState.setCurrentSubtypeHasBeenUsed();
         }
+        updateOctopusSplitSpacebarState();
     }
 
     public void hapticAndAudioFeedback(final int code, final int repeatCount,
