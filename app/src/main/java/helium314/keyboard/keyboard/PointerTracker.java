@@ -104,6 +104,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private static PointerTrackerParams sParams;
     private static final int sPointerStep = KtxKt.dpToPx(10, Resources.getSystem());
     private static final int OCTOPUS_SWIPE_DISTANCE = KtxKt.dpToPx(32, Resources.getSystem());
+    private static final int OCTOPUS_DIRECTION_LOCK_DISTANCE = KtxKt.dpToPx(4, Resources.getSystem());
     private static GestureStrokeRecognitionParams sGestureStrokeRecognitionParams;
     private static GestureStrokeDrawingParams sGestureStrokeDrawingParams;
 
@@ -152,6 +153,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private Key mOctopusStartKey = null;
     private boolean mOctopusSwipeCandidate = false;
     private boolean mOctopusSwipeDetected = false;
+    private boolean mOctopusPluralSwipe = false;
 
     // true if keyboard layout has been changed.
     private boolean mKeyboardLayoutHasBeenChanged;
@@ -732,6 +734,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mOctopusStartKey = null;
         mOctopusSwipeCandidate = false;
         mOctopusSwipeDetected = false;
+        mOctopusPluralSwipe = false;
         if (key != null) {
             // This onPress call may have changed keyboard layout. Those cases are detected at
             // {@link #setKeyboard}. In those cases, we should update key according to the new
@@ -1015,11 +1018,18 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (mOctopusSwipeCandidate) {
             final int dx = x - mStartX;
             final int dy = y - mStartY;
-            if (dy <= -OCTOPUS_SWIPE_DISTANCE && abs(dx) < abs(dy)) {
+            if (abs(dy) >= OCTOPUS_SWIPE_DISTANCE && abs(dx) < abs(dy)) {
                 mOctopusSwipeDetected = true;
+                mOctopusPluralSwipe = dy > 0;
                 mIsDetectingGesture = false;
                 sTimerProxy.cancelKeyTimersOf(this);
                 setReleasedKeyGraphics(oldKey, true);
+                return;
+            }
+            // Once a mostly vertical movement starts on a key that has an Octopus
+            // suggestion, keep ownership of that starting key until the flick either
+            // reaches the threshold or the finger is released.
+            if (abs(dy) >= OCTOPUS_DIRECTION_LOCK_DISTANCE && abs(dx) < abs(dy)) {
                 return;
             }
             if (mOctopusSwipeDetected) {
@@ -1133,10 +1143,13 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
         if (mOctopusSwipeDetected) {
             final Key octopusKey = mOctopusStartKey;
+            final boolean plural = mOctopusPluralSwipe;
             mOctopusStartKey = null;
             mOctopusSwipeCandidate = false;
             mOctopusSwipeDetected = false;
-            if (octopusKey != null && sListener.onOctopusSuggestionSwipe(octopusKey.getCode())) {
+            mOctopusPluralSwipe = false;
+            if (octopusKey != null
+                    && sListener.onOctopusSuggestionSwipe(octopusKey.getCode(), plural)) {
                 callListenerOnRelease(octopusKey, octopusKey.getCode(), true);
             } else {
                 detectAndSendKey(octopusKey, mStartX, mStartY, eventTime);
@@ -1147,6 +1160,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mOctopusStartKey = null;
         mOctopusSwipeCandidate = false;
         mOctopusSwipeDetected = false;
+        mOctopusPluralSwipe = false;
 
         if (mKeySwipeAllowed) {
             mKeySwipeAllowed = false;
