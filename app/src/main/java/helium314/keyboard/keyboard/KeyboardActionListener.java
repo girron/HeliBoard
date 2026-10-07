@@ -87,6 +87,12 @@ public interface KeyboardActionListener {
     boolean onOctopusSuggestionSwipe(int keyCode, boolean plural);
 
     /**
+     * Inserts punctuation from the Octopus split-spacebar control, allowing the
+     * punctuation to replace the trailing weak space and keep spacing natural.
+     */
+    void onOctopusPunctuationInput(int codePoint);
+
+    /**
      * Called when user started batch input.
      */
     void onStartBatchInput();
@@ -162,6 +168,8 @@ public interface KeyboardActionListener {
         public boolean hasOctopusSuggestion(int keyCode) { return false; }
         @Override
         public boolean onOctopusSuggestionSwipe(int keyCode, boolean plural) { return false; }
+        @Override
+        public void onOctopusPunctuationInput(int codePoint) {}
         @Override
         public void onStartBatchInput() {}
         @Override
