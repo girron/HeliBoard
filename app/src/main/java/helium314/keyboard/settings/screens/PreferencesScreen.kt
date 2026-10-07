@@ -46,6 +46,8 @@ fun PreferencesScreen(
         R.string.settings_category_input,
         Settings.PREF_SHOW_HINTS,
         Settings.PREF_OCTOPUS_PREDICTION_SIZE,
+        Settings.PREF_OCTOPUS_IDLE_PREDICTIONS,
+        Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
         if (prefs.getBoolean(Settings.PREF_SHOW_HINTS, Defaults.PREF_SHOW_HINTS))
             Settings.PREF_POPUP_KEYS_HINT_ORDER else null,
         Settings.PREF_POPUP_KEYS_ORDER,
@@ -109,6 +111,14 @@ fun createPreferencesSettings(context: Context) = listOf(
             stepSize = 5,
             onConfirmed = { KeyboardSwitcher.getInstance().reloadKeyboard() }
         )
+    },
+    Setting(context, Settings.PREF_OCTOPUS_IDLE_PREDICTIONS, R.string.octopus_idle_predictions) {
+        SwitchPreference(it, Defaults.PREF_OCTOPUS_IDLE_PREDICTIONS)
+    },
+    Setting(context, Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
+        R.string.octopus_split_spacebar, R.string.octopus_split_spacebar_summary)
+    {
+        SwitchPreference(it, Defaults.PREF_OCTOPUS_SPLIT_SPACEBAR) { KeyboardSwitcher.getInstance().reloadKeyboard() }
     },
     Setting(context, Settings.PREF_POPUP_KEYS_HINT_ORDER, R.string.hint_source) {
         ReorderSwitchPreference(it, Defaults.PREF_POPUP_KEYS_HINT_ORDER)
