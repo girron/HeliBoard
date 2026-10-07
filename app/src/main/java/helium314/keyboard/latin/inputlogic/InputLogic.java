@@ -104,6 +104,33 @@ public final class InputLogic {
         return mSpaceState == SpaceState.WEAK || mSpaceState == SpaceState.PHANTOM;
     }
 
+    /**
+     * Octopus suggestions normally leave a phantom trailing space so the next typed word
+     * can materialize it. When the cursor has been moved to the front of an existing word,
+     * however, there is already text to the right of the cursor. In that case a phantom
+     * space would leave the accepted suggestion glued to the existing word, so materialize
+     * the space immediately.
+     */
+    public boolean materializeOctopusSpaceBeforeExistingWord(final SettingsValues settingsValues) {
+        if (mSpaceState != SpaceState.PHANTOM || mConnection.hasSelection()) {
+            return false;
+        }
+
+        final CharSequence afterCursor = mConnection.getTextAfterCursor(2, 0);
+        if (TextUtils.isEmpty(afterCursor)) {
+            return false;
+        }
+
+        final int nextCodePoint = Character.codePointAt(afterCursor, 0);
+        if (!settingsValues.isWordCodePoint(nextCodePoint)) {
+            return false;
+        }
+
+        mConnection.commitCodePoint(Constants.CODE_SPACE);
+        mSpaceState = SpaceState.WEAK;
+        return true;
+    }
+
     public void setFacilitator(DictionaryFacilitator facilitator) { // only for active gesture data gathering, remove when data gathering phase is done (end of 2026 latest)
         if (mDictionaryFacilitator == facilitator) return;
         mDictionaryFacilitator = facilitator;
