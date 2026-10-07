@@ -103,6 +103,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     // Parameters for pointer handling.
     private static PointerTrackerParams sParams;
     private static final int sPointerStep = KtxKt.dpToPx(10, Resources.getSystem());
+    private static final int OCTOPUS_SWIPE_DISTANCE = KtxKt.dpToPx(32, Resources.getSystem());
     private static GestureStrokeRecognitionParams sGestureStrokeRecognitionParams;
     private static GestureStrokeDrawingParams sGestureStrokeDrawingParams;
 
@@ -145,6 +146,12 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private long mStartTime;
     private boolean mInHorizontalSwipe = false;
     private boolean mInVerticalSwipe = false;
+
+    // Octopus-style short upward flick state. This intentionally stays separate from
+    // HeliBoard's gesture typing and its space/delete swipe machinery.
+    private Key mOctopusStartKey = null;
+    private boolean mOctopusSwipeCandidate = false;
+    private boolean mOctopusSwipeDetected = false;
 
     // true if keyboard layout has been changed.
     private boolean mKeyboardLayoutHasBeenChanged;
@@ -685,7 +692,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         // A gesture should start only from a non-modifier key. Note that the gesture detection is
         // disabled when the key is repeating.
         mIsDetectingGesture = (mKeyboard != null) && mKeyboard.mId.getElement().isAlphabet()
-                && key != null && !key.isModifier() && !mKeySwipeAllowed && !sInKeySwipe;
+                && key != null && !key.isModifier() && !mKeySwipeAllowed && !sInKeySwipe
+                && !mOctopusSwipeCandidate;
         if (mIsDetectingGesture) {
             mBatchInputArbiter.addDownEventPoint(x, y, eventTime,
                     sTypingTimeRecorder.getLastLetterTypingTime(), getActivePointerTrackerCount());
@@ -721,6 +729,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mKeyboardLayoutHasBeenChanged = false;
         mIsTrackingForActionDisabled = false;
         resetKeySelectionByDraggingFinger();
+        mOctopusStartKey = null;
+        mOctopusSwipeCandidate = false;
+        mOctopusSwipeDetected = false;
         if (key != null) {
             // This onPress call may have changed keyboard layout. Those cases are detected at
             // {@link #setKeyboard}. In those cases, we should update key according to the new
@@ -731,6 +742,12 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 keyboardChangeOccupiedHeightDifference = 0;
                 CoordinateUtils.set(mDownCoordinates, x, y + yOffset);
                 key = onDownKey(x, y + yOffset, eventTime);
+            }
+
+            mOctopusSwipeCandidate = Character.isLetter(key.getCode())
+                    && sListener.hasOctopusSuggestion(key.getCode());
+            if (mOctopusSwipeCandidate) {
+                mOctopusStartKey = key;
             }
 
             startRepeatKey(key);
@@ -995,6 +1012,21 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private void onMoveEventInternal(final int x, final int y, final long eventTime) {
         final Key oldKey = mCurrentKey;
 
+        if (mOctopusSwipeCandidate) {
+            final int dx = x - mStartX;
+            final int dy = y - mStartY;
+            if (dy <= -OCTOPUS_SWIPE_DISTANCE && abs(dx) < abs(dy)) {
+                mOctopusSwipeDetected = true;
+                mIsDetectingGesture = false;
+                sTimerProxy.cancelKeyTimersOf(this);
+                setReleasedKeyGraphics(oldKey, true);
+                return;
+            }
+            if (mOctopusSwipeDetected) {
+                return;
+            }
+        }
+
         // todo (later): move key swipe stuff to KeyboardActionListener (and finally extend it)
         if (mKeySwipeAllowed) {
             onKeySwipe(oldKey.getCode(), x, y, eventTime);
@@ -1098,6 +1130,23 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 callListenerOnFinishSlidingInput();
             return;
         }
+
+        if (mOctopusSwipeDetected) {
+            final Key octopusKey = mOctopusStartKey;
+            mOctopusStartKey = null;
+            mOctopusSwipeCandidate = false;
+            mOctopusSwipeDetected = false;
+            if (octopusKey != null && sListener.onOctopusSuggestionSwipe(octopusKey.getCode())) {
+                callListenerOnRelease(octopusKey, octopusKey.getCode(), true);
+            } else {
+                detectAndSendKey(octopusKey, mStartX, mStartY, eventTime);
+            }
+            return;
+        }
+
+        mOctopusStartKey = null;
+        mOctopusSwipeCandidate = false;
+        mOctopusSwipeDetected = false;
 
         if (mKeySwipeAllowed) {
             mKeySwipeAllowed = false;
