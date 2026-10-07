@@ -81,8 +81,10 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     private final SparseBooleanArray mOctopusVisibleKeys = new SparseBooleanArray();
     private boolean mOctopusSplitSpacebarActive = false;
 
-    /* Space key and its icon and background. */
+    /* Bottom-row punctuation/space keys used by Octopus' between-word overlay. */
+    private Key mCommaKey;
     private Key mSpaceKey;
+    private Key mPeriodKey;
     // Stuff to draw language name on spacebar.
     private final int mLanguageOnSpacebarFinalAlpha;
     private final ObjectAnimator mLanguageOnSpacebarFadeoutAnimator;
@@ -329,11 +331,9 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             return;
         }
         mOctopusSplitSpacebarActive = newValue;
-        if (mSpaceKey != null) {
-            invalidateKey(mSpaceKey);
-        } else {
-            invalidateAllKeys();
-        }
+        // The split UI is drawn as one overlay spanning comma + space + period,
+        // so redraw the whole view when its state changes.
+        invalidate();
     }
 
     public boolean isOctopusSplitSpacebarActive() {
@@ -419,7 +419,9 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         PointerTracker.setKeyDetector(mKeyDetector);
         mPopupKeysKeyboardCache.clear();
 
+        mCommaKey = keyboard.getKey(Constants.CODE_COMMA);
         mSpaceKey = keyboard.getKey(Constants.CODE_SPACE);
+        mPeriodKey = keyboard.getKey(Constants.CODE_PERIOD);
         final int keyHeight = keyboard.mMostCommonKeyHeight - keyboard.mVerticalGap;
         mLanguageOnSpacebarTextSize = keyHeight * mLanguageOnSpacebarTextRatio;
 
@@ -834,9 +836,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
 
         if (code == Constants.CODE_SPACE) {
-            if (isOctopusSplitSpacebarActive()) {
-                drawOctopusSplitSpacebar(key, canvas);
-            } else {
+            if (!isOctopusSplitSpacebarActive()) {
                 // If input language are explicitly selected.
                 if (mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
                     drawLanguageOnSpacebar(key, canvas, paint);
@@ -851,40 +851,64 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
     }
 
-    private void drawOctopusSplitSpacebar(@NonNull final Key key, @NonNull final Canvas canvas) {
+    @Override
+    protected void onDraw(@NonNull final Canvas canvas) {
+        super.onDraw(canvas);
+        if (isOctopusSplitSpacebarActive()) {
+            drawOctopusSplitSpacebarOverlay(canvas);
+        }
+    }
+
+    private void drawOctopusSplitSpacebarOverlay(@NonNull final Canvas canvas) {
+        if (mCommaKey == null || mSpaceKey == null || mPeriodKey == null) {
+            return;
+        }
+
+        // Cover the entire normal comma + space + period zone so there is only
+        // one visible Octopus punctuation pair, not the normal pair plus a fake pair.
+        final float left = Math.min(mCommaKey.getDrawX(),
+                Math.min(mSpaceKey.getDrawX(), mPeriodKey.getDrawX())) + getPaddingLeft();
+        final float right = Math.max(mCommaKey.getDrawX() + mCommaKey.getDrawWidth(),
+                Math.max(mSpaceKey.getDrawX() + mSpaceKey.getDrawWidth(),
+                        mPeriodKey.getDrawX() + mPeriodKey.getDrawWidth())) + getPaddingLeft();
+        final float top = Math.min(mCommaKey.getY(),
+                Math.min(mSpaceKey.getY(), mPeriodKey.getY())) + getPaddingTop();
+        final float bottom = Math.max(mCommaKey.getY() + mCommaKey.getHeight(),
+                Math.max(mSpaceKey.getY() + mSpaceKey.getHeight(),
+                        mPeriodKey.getY() + mPeriodKey.getHeight())) + getPaddingTop();
+
         final Paint paint = mOctopusSuggestionPaint;
-        final float width = key.getDrawWidth();
-        final float height = key.getHeight();
+        final float center = (left + right) * 0.5f;
+        final float width = right - left;
+        final float height = bottom - top;
         final float outerMargin = KtxKt.dpToPx(1, getResources());
-        final float centerGap = KtxKt.dpToPx(4, getResources());
-        final float radius = KtxKt.dpToPx(6, getResources());
+        final float centerGap = KtxKt.dpToPx(5, getResources());
+        final float radius = KtxKt.dpToPx(7, getResources());
         final int textColor = Settings.getValues().mColors.get(ColorType.KEY_TEXT);
         final int backgroundColor = Settings.getValues().mColors.get(ColorType.MAIN_BACKGROUND);
         final int buttonColor = Settings.getValues().mColors.get(ColorType.SPACE_BAR_BACKGROUND);
 
-        // Erase the original single spacebar surface, then paint two independent
-        // rounded buttons with a real background-colored gap between them.
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(backgroundColor);
         paint.setAlpha(255);
-        canvas.drawRect(0.0f, 0.0f, width, height, paint);
+        paint.setColor(backgroundColor);
+        canvas.drawRect(left - outerMargin, top - outerMargin,
+                right + outerMargin, bottom + outerMargin, paint);
 
         final RectF leftButton = new RectF(
-                outerMargin,
-                outerMargin,
-                width * 0.5f - centerGap * 0.5f,
-                height - outerMargin);
+                left + outerMargin,
+                top + outerMargin,
+                center - centerGap * 0.5f,
+                bottom - outerMargin);
         final RectF rightButton = new RectF(
-                width * 0.5f + centerGap * 0.5f,
-                outerMargin,
-                width - outerMargin,
-                height - outerMargin);
+                center + centerGap * 0.5f,
+                top + outerMargin,
+                right - outerMargin,
+                bottom - outerMargin);
 
         paint.setColor(buttonColor);
         canvas.drawRoundRect(leftButton, radius, radius, paint);
         canvas.drawRoundRect(rightButton, radius, radius, paint);
 
-        // A light outline makes the two targets remain obvious even on borderless themes.
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(Math.max(1.0f, KtxKt.dpToPx(1, getResources())));
         paint.setColor(textColor);
@@ -900,14 +924,16 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         paint.setColor(textColor);
         paint.setTextSize(Math.max(16.0f, height * 0.30f));
 
-        final float punctuationY = height * 0.67f;
-        canvas.drawText(",", width * 0.25f, punctuationY, paint);
-        canvas.drawText(".", width * 0.75f, punctuationY, paint);
+        final float leftCenter = (leftButton.left + leftButton.right) * 0.5f;
+        final float rightCenter = (rightButton.left + rightButton.right) * 0.5f;
+        final float punctuationY = top + height * 0.67f;
+        canvas.drawText(",", leftCenter, punctuationY, paint);
+        canvas.drawText(".", rightCenter, punctuationY, paint);
 
         paint.setTextSize(Math.max(10.0f, height * 0.16f));
-        final float hintY = Math.max(paint.getTextSize(), height * 0.24f);
-        canvas.drawText("?", width * 0.25f, hintY, paint);
-        canvas.drawText("!", width * 0.75f, hintY, paint);
+        final float hintY = top + Math.max(paint.getTextSize(), height * 0.24f);
+        canvas.drawText("?", leftCenter, hintY, paint);
+        canvas.drawText("!", rightCenter, hintY, paint);
     }
 
     private void configureOctopusSuggestionPaint(@NonNull final Key key,
