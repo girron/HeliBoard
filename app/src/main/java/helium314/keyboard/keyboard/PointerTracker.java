@@ -1214,8 +1214,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         ? (flickUp ? '!' : '.')
                         : (flickUp ? '?' : ',');
                 sTypingTimeRecorder.onCodeInput(code, eventTime);
-                sListener.onCodeInput(code, Constants.NOT_A_COORDINATE,
-                        Constants.NOT_A_COORDINATE, false);
+                sListener.onOctopusPunctuationInput(code);
                 callListenerOnRelease(splitKey, splitKey.getCode(), true);
             }
             return;
