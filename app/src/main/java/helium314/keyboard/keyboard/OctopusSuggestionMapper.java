@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 
 import helium314.keyboard.latin.SuggestedWords;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
+import helium314.keyboard.latin.dictionary.Dictionary;
 
 /**
  * Maps HeliBoard's ranked suggestions to the key that represents the next character,
@@ -16,6 +17,15 @@ import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 public final class OctopusSuggestionMapper {
     private final SparseArray<SuggestedWordInfo> mSuggestionsByKey = new SparseArray<>();
     private final SparseBooleanArray mCorrectionsByKey = new SparseBooleanArray();
+
+    // Safety net for a completely empty field. HeliBoard can produce zero-prefix
+    // predictions, but some dictionaries/configurations return no candidates until
+    // there is context. These give Octopus something useful to show immediately;
+    // real HeliBoard predictions replace them as soon as they arrive.
+    private static final String[] STARTER_FALLBACK_WORDS = {
+            "the", "I", "and", "you", "what", "my", "but", "so",
+            "can", "have", "just", "for", "not", "do", "good"
+    };
 
     public void update(@Nullable final SuggestedWords suggestedWords) {
         mSuggestionsByKey.clear();
@@ -62,6 +72,29 @@ public final class OctopusSuggestionMapper {
             final boolean isCorrection = !typedWord.isEmpty()
                     && !startsWithIgnoreCase(word, typedWord);
             mCorrectionsByKey.put(nextCodePoint, isCorrection);
+        }
+    }
+
+    public void showStarterFallback() {
+        mSuggestionsByKey.clear();
+        mCorrectionsByKey.clear();
+
+        for (int i = 0; i < STARTER_FALLBACK_WORDS.length; i++) {
+            final String word = STARTER_FALLBACK_WORDS[i];
+            final int keyCode = normalizeKeyCode(word.codePointAt(0));
+            if (mSuggestionsByKey.get(keyCode) != null) {
+                continue;
+            }
+            final SuggestedWordInfo info = new SuggestedWordInfo(
+                    word,
+                    "",
+                    SuggestedWordInfo.MAX_SCORE - i,
+                    SuggestedWordInfo.KIND_PREDICTION,
+                    Dictionary.DICTIONARY_HARDCODED,
+                    SuggestedWordInfo.NOT_AN_INDEX,
+                    SuggestedWordInfo.NOT_A_CONFIDENCE);
+            mSuggestionsByKey.put(keyCode, info);
+            mCorrectionsByKey.put(keyCode, false);
         }
     }
 
