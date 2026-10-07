@@ -51,8 +51,24 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Show cached signing certificate
+        run: |
+          keytool -list -v             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey | grep -E 'SHA256:|Valid from:'
+
       - name: Build with Gradle
+        env:
+          OCTOPUS_DEBUG_KEYSTORE: /home/runner/.android/debug.keystore
         run: ./gradlew assembleDebug
+
+      - name: Verify APK uses cached signing certificate
+        run: |
+          APK="$(find app/build/outputs/apk/debug -name '*-debug*.apk' -print -quit)"
+          KEY_SHA="$(keytool -list -v             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey | sed -n 's/.*SHA256: //p' | head -1)"
+          APK_SHA="$(keytool -printcert -jarfile "$APK" | sed -n 's/.*SHA256: //p' | head -1)"
+          echo "Cached key SHA256: $KEY_SHA"
+          echo "Built APK SHA256:  $APK_SHA"
+          test -n "$KEY_SHA"
+          test "$KEY_SHA" = "$APK_SHA"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
