@@ -163,6 +163,15 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
     }
 
+    override fun hasOctopusSuggestion(keyCode: Int): Boolean =
+        keyboardSwitcher.mainKeyboardView?.hasOctopusSuggestion(keyCode) == true
+
+    override fun onOctopusSuggestionSwipe(keyCode: Int): Boolean {
+        val suggestion = keyboardSwitcher.mainKeyboardView?.getOctopusSuggestion(keyCode) ?: return false
+        latinIME.pickSuggestionManually(suggestion)
+        return true
+    }
+
     override fun onStartBatchInput() = latinIME.onStartBatchInput()
 
     override fun onUpdateBatchInput(batchPointers: InputPointers?) = latinIME.onUpdateBatchInput(batchPointers)
