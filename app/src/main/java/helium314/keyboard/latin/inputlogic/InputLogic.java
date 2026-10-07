@@ -100,33 +100,64 @@ public final class InputLogic {
     public Suggest mSuggest; // non-final for active gesture data gathering, revert when data gathering phase is done (end of 2026 latest)
     public DictionaryFacilitator mDictionaryFacilitator; // non-final for active gesture data gathering, revert when data gathering phase is done (end of 2026 latest)
     private SingleDictionaryFacilitator mEmojiDictionaryFacilitator;
+    /**
+     * Crimson only split its spacebar when the actual editor context ended in exactly one
+     * whitespace character and the character before that whitespace was not punctuation.
+     * Use the real editor text rather than a transient phantom-space state so cursor moves,
+     * field restarts, and accepted Octopus suggestions all behave consistently.
+     */
     public boolean isOctopusSplitSpacebarState() {
-        return mSpaceState == SpaceState.WEAK || mSpaceState == SpaceState.PHANTOM;
+        final CharSequence beforeCursor = mConnection.getTextBeforeCursor(8, 0);
+        if (TextUtils.isEmpty(beforeCursor)) {
+            return false;
+        }
+
+        int index = beforeCursor.length();
+        final int lastCodePoint = Character.codePointBefore(beforeCursor, index);
+        if (lastCodePoint != Constants.CODE_SPACE) {
+            return false;
+        }
+        index -= Character.charCount(lastCodePoint);
+
+        // Crimson required exactly one trailing whitespace character.
+        if (index <= 0) {
+            return true;
+        }
+        final int previousCodePoint = Character.codePointBefore(beforeCursor, index);
+        if (Character.isWhitespace(previousCodePoint)) {
+            return false;
+        }
+        return !isOctopusPunctuation(previousCodePoint);
+    }
+
+    private static boolean isOctopusPunctuation(final int codePoint) {
+        switch (Character.getType(codePoint)) {
+        case Character.CONNECTOR_PUNCTUATION:
+        case Character.DASH_PUNCTUATION:
+        case Character.START_PUNCTUATION:
+        case Character.END_PUNCTUATION:
+        case Character.INITIAL_QUOTE_PUNCTUATION:
+        case Character.FINAL_QUOTE_PUNCTUATION:
+        case Character.OTHER_PUNCTUATION:
+            return true;
+        default:
+            return false;
+        }
     }
 
     /**
-     * Octopus suggestions normally leave a phantom trailing space so the next typed word
-     * can materialize it. When the cursor has been moved to the front of an existing word,
-     * however, there is already text to the right of the cursor. In that case a phantom
-     * space would leave the accepted suggestion glued to the existing word, so materialize
-     * the space immediately.
+     * Crimson's suggestion insertion path appends a real space immediately. HeliBoard's
+     * normal manual-pick path uses a phantom space, so materialize it for Octopus and keep
+     * the normal HeliBoard learning/history behavior from the manual pick.
      */
-    public boolean materializeOctopusSpaceBeforeExistingWord(final SettingsValues settingsValues) {
-        if (mSpaceState != SpaceState.PHANTOM || mConnection.hasSelection()) {
+    public boolean materializeOctopusSuggestionSpace() {
+        if (mConnection.hasSelection()) {
             return false;
         }
 
-        final CharSequence afterCursor = mConnection.getTextAfterCursor(2, 0);
-        if (TextUtils.isEmpty(afterCursor)) {
-            return false;
+        if (mConnection.getCodePointBeforeCursor() != Constants.CODE_SPACE) {
+            mConnection.commitCodePoint(Constants.CODE_SPACE);
         }
-
-        final int nextCodePoint = Character.codePointAt(afterCursor, 0);
-        if (!settingsValues.isWordCodePoint(nextCodePoint)) {
-            return false;
-        }
-
-        mConnection.commitCodePoint(Constants.CODE_SPACE);
         mSpaceState = SpaceState.WEAK;
         return true;
     }
