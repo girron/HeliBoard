@@ -2145,8 +2145,40 @@ public final class InputLogic {
         final int inputType = ei.inputType;
         // Warning: this depends on mSpaceState, which may not be the most current value. If
         // mSpaceState gets updated later, whoever called this may need to be told about it.
-        return mConnection.getCursorCapsMode(inputType, settingsValues.mSpacingAndPunctuations,
-                SpaceState.PHANTOM == mSpaceState);
+        final int editorCapsMode = mConnection.getCursorCapsMode(inputType,
+                settingsValues.mSpacingAndPunctuations, SpaceState.PHANTOM == mSpaceState);
+        if (editorCapsMode != Constants.TextUtils.CAP_MODE_OFF) {
+            return editorCapsMode;
+        }
+
+        // Some apps expose ordinary text fields without TYPE_TEXT_FLAG_CAP_SENTENCES.
+        // Octopus should still behave like a phone keyboard: shift on at the beginning
+        // of a sentence, while leaving email/URI/password/etc. fields alone.
+        if (!settingsValues.mInputAttributes.mIsGeneralTextInput) {
+            return Constants.TextUtils.CAP_MODE_OFF;
+        }
+
+        final CharSequence beforeCursor = mConnection.getTextBeforeCursor(128, 0);
+        if (TextUtils.isEmpty(beforeCursor)) {
+            return TextUtils.CAP_MODE_SENTENCES;
+        }
+
+        int index = beforeCursor.length();
+        boolean skippedWhitespace = false;
+        while (index > 0) {
+            final int codePoint = Character.codePointBefore(beforeCursor, index);
+            if (!Character.isWhitespace(codePoint)) {
+                return skippedWhitespace
+                        && settingsValues.mSpacingAndPunctuations.isSentenceTerminator(codePoint)
+                        ? TextUtils.CAP_MODE_SENTENCES
+                        : Constants.TextUtils.CAP_MODE_OFF;
+            }
+            skippedWhitespace = true;
+            index -= Character.charCount(codePoint);
+        }
+
+        // The field contains only whitespace, so the next character starts a sentence.
+        return TextUtils.CAP_MODE_SENTENCES;
     }
 
     @Nullable
