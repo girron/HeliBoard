@@ -162,6 +162,10 @@ public final class InputLogic {
         return true;
     }
 
+    public void armOctopusPunctuationInput() {
+        mOctopusPunctuationInput = true;
+    }
+
     public void setFacilitator(DictionaryFacilitator facilitator) { // only for active gesture data gathering, remove when data gathering phase is done (end of 2026 latest)
         if (mDictionaryFacilitator == facilitator) return;
         mDictionaryFacilitator = facilitator;
@@ -192,6 +196,11 @@ public final class InputLogic {
     private String mWordBeingCorrectedByCursor = null;
 
     private boolean mJustRevertedACommit = false;
+
+    // Octopus' split punctuation control visually sits in place of the trailing space.
+    // Arm one punctuation event so HeliBoard's existing weak-space swap logic treats
+    // it like a punctuation pick from the suggestion strip.
+    private boolean mOctopusPunctuationInput = false;
 
     private long mCursorMoveExpectedUntil = 0L;
 
@@ -1620,7 +1629,9 @@ public final class InputLogic {
             return false;
         }
 
-        final boolean isFromSuggestionStrip = event.isSuggestionStripPress();
+        final boolean isFromSuggestionStrip =
+                event.isSuggestionStripPress() || mOctopusPunctuationInput;
+        mOctopusPunctuationInput = false;
         if (Constants.CODE_ENTER == codePoint &&
                 SpaceState.SWAP_PUNCTUATION == inputTransaction.getSpaceState()) {
             mConnection.removeTrailingSpace();
