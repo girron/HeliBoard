@@ -166,6 +166,11 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun hasOctopusSuggestion(keyCode: Int): Boolean =
         keyboardSwitcher.mainKeyboardView?.hasOctopusSuggestion(keyCode) == true
 
+    override fun onOctopusPunctuationInput(codePoint: Int) {
+        inputLogic.armOctopusPunctuationInput()
+        onCodeInput(codePoint, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+    }
+
     override fun onOctopusSuggestionSwipe(keyCode: Int, plural: Boolean): Boolean {
         if (keyCode == Constants.CODE_COMMA) {
             onCodeInput('?'.code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
