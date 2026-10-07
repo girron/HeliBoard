@@ -886,7 +886,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
         // A light outline makes the two targets remain obvious even on borderless themes.
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(Math.max(1.0f, KtxKt.dpToPx(1.0f, getResources())));
+        paint.setStrokeWidth(Math.max(1.0f, KtxKt.dpToPx(1, getResources())));
         paint.setColor(textColor);
         paint.setAlpha(48);
         canvas.drawRoundRect(leftButton, radius, radius, paint);
