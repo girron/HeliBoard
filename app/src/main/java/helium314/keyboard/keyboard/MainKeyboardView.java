@@ -298,6 +298,12 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         invalidateAllKeys();
     }
 
+    public void showOctopusStarterFallback() {
+        mOctopusSuggestionMapper.showStarterFallback();
+        rebuildOctopusVisibleKeys();
+        invalidateAllKeys();
+    }
+
     public boolean hasOctopusSuggestion(final int keyCode) {
         if (!isOctopusAlphabetKeyboard()) {
             return false;
@@ -849,12 +855,48 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final Paint paint = mOctopusSuggestionPaint;
         final float width = key.getDrawWidth();
         final float height = key.getHeight();
+        final float outerMargin = KtxKt.dpToPx(1.0f, getResources());
+        final float centerGap = KtxKt.dpToPx(4.0f, getResources());
+        final float radius = KtxKt.dpToPx(6.0f, getResources());
         final int textColor = Settings.getValues().mColors.get(ColorType.KEY_TEXT);
+        final int backgroundColor = Settings.getValues().mColors.get(ColorType.MAIN_BACKGROUND);
+        final int buttonColor = Settings.getValues().mColors.get(ColorType.SPACE_BAR_BACKGROUND);
 
+        // Erase the original single spacebar surface, then paint two independent
+        // rounded buttons with a real background-colored gap between them.
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(backgroundColor);
+        paint.setAlpha(255);
+        canvas.drawRect(0.0f, 0.0f, width, height, paint);
+
+        final RectF leftButton = new RectF(
+                outerMargin,
+                outerMargin,
+                width * 0.5f - centerGap * 0.5f,
+                height - outerMargin);
+        final RectF rightButton = new RectF(
+                width * 0.5f + centerGap * 0.5f,
+                outerMargin,
+                width - outerMargin,
+                height - outerMargin);
+
+        paint.setColor(buttonColor);
+        canvas.drawRoundRect(leftButton, radius, radius, paint);
+        canvas.drawRoundRect(rightButton, radius, radius, paint);
+
+        // A light outline makes the two targets remain obvious even on borderless themes.
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1.0f, KtxKt.dpToPx(1.0f, getResources())));
+        paint.setColor(textColor);
+        paint.setAlpha(48);
+        canvas.drawRoundRect(leftButton, radius, radius, paint);
+        canvas.drawRoundRect(rightButton, radius, radius, paint);
+
+        paint.setAlpha(255);
+        paint.setStyle(Paint.Style.FILL);
         paint.setTypeface(Typeface.DEFAULT_BOLD);
         paint.setTextAlign(Align.CENTER);
         paint.setTextScaleX(1.0f);
-        paint.setStyle(Paint.Style.FILL);
         paint.setColor(textColor);
         paint.setTextSize(Math.max(16.0f, height * 0.30f));
 
@@ -866,11 +908,6 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final float hintY = Math.max(paint.getTextSize(), height * 0.24f);
         canvas.drawText("?", width * 0.25f, hintY, paint);
         canvas.drawText("!", width * 0.75f, hintY, paint);
-
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(Math.max(1.0f, height * 0.018f));
-        canvas.drawLine(width * 0.5f, height * 0.15f, width * 0.5f, height * 0.85f, paint);
-        paint.setStyle(Paint.Style.FILL);
     }
 
     private void configureOctopusSuggestionPaint(@NonNull final Key key,
