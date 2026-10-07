@@ -199,8 +199,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             )
         }
 
-        latinIME.pickSuggestionManually(suggestionToCommit)
-        inputLogic.materializeOctopusSpaceBeforeExistingWord(settings.current)
+        latinIME.pickOctopusSuggestionManually(suggestionToCommit)
         return true
     }
 
