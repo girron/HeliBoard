@@ -2,6 +2,7 @@
 package helium314.keyboard.keyboard;
 
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 
 import androidx.annotation.Nullable;
 
@@ -14,9 +15,11 @@ import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
  */
 public final class OctopusSuggestionMapper {
     private final SparseArray<SuggestedWordInfo> mSuggestionsByKey = new SparseArray<>();
+    private final SparseBooleanArray mCorrectionsByKey = new SparseBooleanArray();
 
     public void update(@Nullable final SuggestedWords suggestedWords) {
         mSuggestionsByKey.clear();
+        mCorrectionsByKey.clear();
         if (suggestedWords == null || suggestedWords.isEmpty()
                 || suggestedWords.isPunctuationSuggestions()) {
             return;
@@ -24,8 +27,7 @@ public final class OctopusSuggestionMapper {
 
         final SuggestedWordInfo typedWordInfo = suggestedWords.mTypedWordInfo;
         final String typedWord = typedWordInfo == null ? "" : typedWordInfo.mWord;
-        final int typedCodePointCount =
-                typedWord.codePointCount(0, typedWord.length());
+        final int typedCodePointCount = typedWord.codePointCount(0, typedWord.length());
 
         // SuggestedWords is already ranked. The first suggestion encountered for a
         // particular next-character key wins, just like Octopus' suggestionIndexForKey:.
@@ -36,7 +38,7 @@ public final class OctopusSuggestionMapper {
             }
 
             final String word = info.mWord;
-            if (word == null || word.isEmpty()) {
+            if (word == null || word.isEmpty() || containsWhitespace(word)) {
                 continue;
             }
 
@@ -53,6 +55,13 @@ public final class OctopusSuggestionMapper {
             }
 
             mSuggestionsByKey.put(nextCodePoint, info);
+
+            // The original Octopus colored a candidate red when it did not share
+            // the text already typed as its prefix. That is a correction rather
+            // than a normal completion.
+            final boolean isCorrection = !typedWord.isEmpty()
+                    && !startsWithIgnoreCase(word, typedWord);
+            mCorrectionsByKey.put(nextCodePoint, isCorrection);
         }
     }
 
@@ -63,6 +72,26 @@ public final class OctopusSuggestionMapper {
 
     public boolean hasSuggestion(final int keyCode) {
         return getSuggestion(keyCode) != null;
+    }
+
+    public boolean isCorrection(final int keyCode) {
+        return mCorrectionsByKey.get(normalizeKeyCode(keyCode), false);
+    }
+
+    private static boolean startsWithIgnoreCase(final String word, final String prefix) {
+        return word.length() >= prefix.length()
+                && word.regionMatches(true, 0, prefix, 0, prefix.length());
+    }
+
+    private static boolean containsWhitespace(final String text) {
+        for (int i = 0; i < text.length(); ) {
+            final int codePoint = text.codePointAt(i);
+            if (Character.isWhitespace(codePoint)) {
+                return true;
+            }
+            i += Character.charCount(codePoint);
+        }
+        return false;
     }
 
     private static int normalizeKeyCode(final int keyCode) {
