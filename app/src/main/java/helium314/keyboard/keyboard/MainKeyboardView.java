@@ -79,6 +79,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     private final OctopusSuggestionMapper mOctopusSuggestionMapper = new OctopusSuggestionMapper();
     private final Paint mOctopusSuggestionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final SparseBooleanArray mOctopusVisibleKeys = new SparseBooleanArray();
+    private boolean mOctopusSplitSpacebarActive = false;
 
     /* Space key and its icon and background. */
     private Key mSpaceKey;
@@ -314,6 +315,23 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     public boolean isOctopusCorrection(final int keyCode) {
         return mOctopusSuggestionMapper.isCorrection(keyCode);
+    }
+
+    public void setOctopusSplitSpacebarActive(final boolean active) {
+        final boolean newValue = active && isOctopusAlphabetKeyboard();
+        if (mOctopusSplitSpacebarActive == newValue) {
+            return;
+        }
+        mOctopusSplitSpacebarActive = newValue;
+        if (mSpaceKey != null) {
+            invalidateKey(mSpaceKey);
+        } else {
+            invalidateAllKeys();
+        }
+    }
+
+    public boolean isOctopusSplitSpacebarActive() {
+        return mOctopusSplitSpacebarActive && isOctopusAlphabetKeyboard();
     }
 
     private boolean isOctopusAlphabetKeyboard() {
@@ -810,17 +828,49 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
 
         if (code == Constants.CODE_SPACE) {
-            // If input language are explicitly selected.
-            if (mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
-                drawLanguageOnSpacebar(key, canvas, paint);
-            }
-            // Whether space key needs to show the "..." popup hint for special purposes
-            if (key.isLongPressEnabled() && mHasMultipleEnabledIMEsOrSubtypes && Settings.getValues().mSpaceForLangChange) {
-                drawKeyPopupHint(key, canvas, paint, params);
+            if (isOctopusSplitSpacebarActive()) {
+                drawOctopusSplitSpacebar(key, canvas);
+            } else {
+                // If input language are explicitly selected.
+                if (mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
+                    drawLanguageOnSpacebar(key, canvas, paint);
+                }
+                // Whether space key needs to show the "..." popup hint for special purposes
+                if (key.isLongPressEnabled() && mHasMultipleEnabledIMEsOrSubtypes && Settings.getValues().mSpaceForLangChange) {
+                    drawKeyPopupHint(key, canvas, paint, params);
+                }
             }
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
             drawKeyPopupHint(key, canvas, paint, params);
         }
+    }
+
+    private void drawOctopusSplitSpacebar(@NonNull final Key key, @NonNull final Canvas canvas) {
+        final Paint paint = mOctopusSuggestionPaint;
+        final float width = key.getDrawWidth();
+        final float height = key.getHeight();
+        final int textColor = Settings.getValues().mColors.get(ColorType.KEY_TEXT);
+
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        paint.setTextAlign(Align.CENTER);
+        paint.setTextScaleX(1.0f);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(textColor);
+        paint.setTextSize(Math.max(16.0f, height * 0.30f));
+
+        final float punctuationY = height * 0.67f;
+        canvas.drawText(",", width * 0.25f, punctuationY, paint);
+        canvas.drawText(".", width * 0.75f, punctuationY, paint);
+
+        paint.setTextSize(Math.max(10.0f, height * 0.16f));
+        final float hintY = Math.max(paint.getTextSize(), height * 0.24f);
+        canvas.drawText("?", width * 0.25f, hintY, paint);
+        canvas.drawText("!", width * 0.75f, hintY, paint);
+
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1.0f, height * 0.018f));
+        canvas.drawLine(width * 0.5f, height * 0.15f, width * 0.5f, height * 0.85f, paint);
+        paint.setStyle(Paint.Style.FILL);
     }
 
     private void configureOctopusSuggestionPaint(@NonNull final Key key,
