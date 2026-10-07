@@ -1079,28 +1079,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             if (abs(dy) >= OCTOPUS_DIRECTION_LOCK_DISTANCE && abs(dx) < abs(dy)) {
                 return;
             }
-            if (mOctopusSplitSpaceCandidate) {
-            final Key splitKey = mOctopusSplitSpaceKey;
-            final boolean rightHalf = mOctopusSplitSpaceRightHalf;
-            final boolean flickUp = mOctopusSplitSpaceFlickDetected;
-            mOctopusSplitSpaceKey = null;
-            mOctopusSplitSpaceCandidate = false;
-            mOctopusSplitSpaceFlickDetected = false;
-            mOctopusSplitSpaceRightHalf = false;
-
-            if (splitKey != null) {
-                final int code = rightHalf
-                        ? (flickUp ? '!' : '.')
-                        : (flickUp ? '?' : ',');
-                sTypingTimeRecorder.onCodeInput(code, eventTime);
-                sListener.onCodeInput(code, Constants.NOT_A_COORDINATE,
-                        Constants.NOT_A_COORDINATE, false);
-                callListenerOnRelease(splitKey, splitKey.getCode(), true);
-            }
-            return;
-        }
-
-        if (mOctopusSwipeDetected) {
+            if (mOctopusSwipeDetected) {
                 return;
             }
         }
@@ -1206,6 +1185,27 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             dismissPopupKeysPanel();
             if (isInSlidingKeyInput)
                 callListenerOnFinishSlidingInput();
+            return;
+        }
+
+        if (mOctopusSplitSpaceCandidate) {
+            final Key splitKey = mOctopusSplitSpaceKey;
+            final boolean rightHalf = mOctopusSplitSpaceRightHalf;
+            final boolean flickUp = mOctopusSplitSpaceFlickDetected;
+            mOctopusSplitSpaceKey = null;
+            mOctopusSplitSpaceCandidate = false;
+            mOctopusSplitSpaceFlickDetected = false;
+            mOctopusSplitSpaceRightHalf = false;
+
+            if (splitKey != null) {
+                final int code = rightHalf
+                        ? (flickUp ? '!' : '.')
+                        : (flickUp ? '?' : ',');
+                sTypingTimeRecorder.onCodeInput(code, eventTime);
+                sListener.onCodeInput(code, Constants.NOT_A_COORDINATE,
+                        Constants.NOT_A_COORDINATE, false);
+                callListenerOnRelease(splitKey, splitKey.getCode(), true);
+            }
             return;
         }
 
