@@ -1541,20 +1541,10 @@ public class LatinIME extends InputMethodService implements
             return;
         }
         final SettingsValues settingsValues = mSettings.getCurrent();
-        boolean active = KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
+        final boolean active = KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
                 Defaults.PREF_OCTOPUS_SPLIT_SPACEBAR)
                 && !settingsValues.mInputAttributes.mIsPasswordField
                 && mInputLogic.isOctopusSplitSpacebarState();
-
-        // A freshly opened/restarted field may have a real trailing space even though
-        // InputLogic's transient space state was reset. Preserve Octopus' between-word UI.
-        if (!active && KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_SPLIT_SPACEBAR,
-                Defaults.PREF_OCTOPUS_SPLIT_SPACEBAR)
-                && !settingsValues.mInputAttributes.mIsPasswordField) {
-            final CharSequence beforeCursor = mInputLogic.mConnection.getTextBeforeCursor(1, 0);
-            active = beforeCursor != null && beforeCursor.length() > 0
-                    && beforeCursor.charAt(beforeCursor.length() - 1) == Constants.CODE_SPACE;
-        }
         mainKeyboardView.setOctopusSplitSpacebarActive(active);
     }
 
@@ -1634,6 +1624,16 @@ public class LatinIME extends InputMethodService implements
                 mKeyboardSwitcher.getKeyboardCapsMode(),
                 mKeyboardSwitcher.getCurrentKeyboardScript(),
                 mHandler);
+        updateStateAfterInputTransaction(completeInputTransaction);
+    }
+
+    public void pickOctopusSuggestionManually(final SuggestedWordInfo suggestionInfo) {
+        final InputTransaction completeInputTransaction = mInputLogic.onPickSuggestionManually(
+                mSettings.getCurrent(), suggestionInfo,
+                mKeyboardSwitcher.getKeyboardCapsMode(),
+                mKeyboardSwitcher.getCurrentKeyboardScript(),
+                mHandler);
+        mInputLogic.materializeOctopusSuggestionSpace();
         updateStateAfterInputTransaction(completeInputTransaction);
     }
 
