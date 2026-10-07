@@ -20,10 +20,33 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
 
       - name: Restore stable debug signing key
-        uses: actions/cache@v4
+        id: debug-keystore-cache
+        uses: actions/cache/restore@v4
         with:
-          path: ~/.android/debug.keystore
-          key: heliboard-octopus-debug-keystore-v1
+          path: /home/runner/.android/debug.keystore
+          key: heliboard-octopus-debug-keystore-v2
+
+      - name: Ensure stable debug signing key exists
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Save stable debug signing key
+        if: steps.debug-keystore-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /home/runner/.android/debug.keystore
+          key: heliboard-octopus-debug-keystore-v2
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
