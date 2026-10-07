@@ -167,6 +167,15 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         keyboardSwitcher.mainKeyboardView?.hasOctopusSuggestion(keyCode) == true
 
     override fun onOctopusSuggestionSwipe(keyCode: Int, plural: Boolean): Boolean {
+        if (keyCode == Constants.CODE_COMMA) {
+            onCodeInput('?'.code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            return true
+        }
+        if (keyCode == Constants.CODE_PERIOD) {
+            onCodeInput('!'.code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            return true
+        }
+
         val suggestion = keyboardSwitcher.mainKeyboardView?.getOctopusSuggestion(keyCode) ?: return false
 
         val suggestionToCommit = if (!plural) {
