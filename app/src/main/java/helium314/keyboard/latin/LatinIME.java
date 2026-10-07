@@ -1510,6 +1510,31 @@ public class LatinIME extends InputMethodService implements
         return null != mSuggestionStripView;
     }
 
+    private boolean shouldShowOctopusStarterFallback() {
+        final SettingsValues settingsValues = mSettings.getCurrent();
+        if (!KtxKt.prefs(this).getBoolean(Settings.PREF_OCTOPUS_IDLE_PREDICTIONS,
+                Defaults.PREF_OCTOPUS_IDLE_PREDICTIONS)
+                || settingsValues.mInputAttributes.mIsPasswordField
+                || !"en".equals(mRichImm.getCurrentSubtypeLocale().getLanguage())
+                || mInputLogic.mConnection.hasSelection()) {
+            return false;
+        }
+
+        final CharSequence beforeCursor = mInputLogic.mConnection.getTextBeforeCursor(1, 0);
+        return (beforeCursor == null || beforeCursor.length() == 0)
+                && !mInputLogic.mConnection.hasTextAfterCursor();
+    }
+
+    private void showOctopusStarterFallbackIfAppropriate() {
+        if (!shouldShowOctopusStarterFallback()) {
+            return;
+        }
+        final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
+        if (mainKeyboardView != null) {
+            mainKeyboardView.showOctopusStarterFallback();
+        }
+    }
+
     private void updateOctopusSplitSpacebarState() {
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView == null) {
@@ -1644,6 +1669,9 @@ public class LatinIME extends InputMethodService implements
                 ? currentSettings.mPunctuationSuggestions
                 : SuggestedWords.getEmptyInstance();
         setSuggestedWords(neutralSuggestions);
+        // HeliBoard may legitimately return no zero-prefix candidates at the beginning
+        // of an empty field. Keep Octopus from opening completely blank in that case.
+        showOctopusStarterFallbackIfAppropriate();
         if (hasSuggestionStripView() && currentSettings.mAutoShowToolbar) {
             final int codePointBeforeCursor = mInputLogic.mConnection.getCodePointBeforeCursor();
             if (mInputLogic.mConnection.hasSelection()
