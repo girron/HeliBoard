@@ -16,9 +16,11 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Paint.Align;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.util.SparseBooleanArray;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -76,6 +78,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     // Octopus-style per-key suggestions.
     private final OctopusSuggestionMapper mOctopusSuggestionMapper = new OctopusSuggestionMapper();
     private final Paint mOctopusSuggestionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final SparseBooleanArray mOctopusVisibleKeys = new SparseBooleanArray();
 
     /* Space key and its icon and background. */
     private Key mSpaceKey;
@@ -290,16 +293,79 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     public void setOctopusSuggestions(@Nullable final SuggestedWords suggestedWords) {
         mOctopusSuggestionMapper.update(suggestedWords);
+        rebuildOctopusVisibleKeys();
         invalidateAllKeys();
     }
 
     public boolean hasOctopusSuggestion(final int keyCode) {
+        if (!isOctopusAlphabetKeyboard()) {
+            return false;
+        }
+        if (keyCode == Constants.CODE_COMMA || keyCode == Constants.CODE_PERIOD) {
+            return true;
+        }
         return mOctopusSuggestionMapper.hasSuggestion(keyCode);
     }
 
     @Nullable
     public SuggestedWords.SuggestedWordInfo getOctopusSuggestion(final int keyCode) {
         return mOctopusSuggestionMapper.getSuggestion(keyCode);
+    }
+
+    public boolean isOctopusCorrection(final int keyCode) {
+        return mOctopusSuggestionMapper.isCorrection(keyCode);
+    }
+
+    private boolean isOctopusAlphabetKeyboard() {
+        final Keyboard keyboard = getKeyboard();
+        return keyboard != null && keyboard.mId.getElement().isAlphabet();
+    }
+
+    private void rebuildOctopusVisibleKeys() {
+        mOctopusVisibleKeys.clear();
+        final Keyboard keyboard = getKeyboard();
+        if (keyboard == null || !keyboard.mId.getElement().isAlphabet()) {
+            return;
+        }
+
+        final ArrayList<RectF> occupied = new ArrayList<>();
+        final float gap = KtxKt.dpToPx(2, getResources());
+
+        // Keep Octopus' original behavior where suggestion labels may extend beyond
+        // a single key, but suppress a later label when it would collide with one
+        // already drawn on the same row.
+        for (final Key key : keyboard.getSortedKeys()) {
+            final int code = key.getCode();
+            if (!Character.isLetter(code)) {
+                continue;
+            }
+            final SuggestedWords.SuggestedWordInfo info = mOctopusSuggestionMapper.getSuggestion(code);
+            if (info == null) {
+                continue;
+            }
+
+            configureOctopusSuggestionPaint(key, info.mWord);
+            final float width = mOctopusSuggestionPaint.measureText(info.mWord);
+            final float centerX = key.getDrawX() + key.getDrawWidth() * 0.5f;
+            final float top = key.getY();
+            final RectF bounds = new RectF(
+                    centerX - width * 0.5f - gap,
+                    top,
+                    centerX + width * 0.5f + gap,
+                    top + mOctopusSuggestionPaint.getTextSize() * 1.4f);
+
+            boolean overlaps = false;
+            for (final RectF other : occupied) {
+                if (RectF.intersects(bounds, other)) {
+                    overlaps = true;
+                    break;
+                }
+            }
+            if (!overlaps) {
+                occupied.add(bounds);
+                mOctopusVisibleKeys.put(Character.toLowerCase(code), true);
+            }
+        }
     }
 
     // TODO: We should reconsider which coordinate system should be used to represent keyboard event.
@@ -341,6 +407,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         } else {
             mAccessibilityDelegate = null;
         }
+        rebuildOctopusVisibleKeys();
     }
 
     /**
@@ -728,10 +795,18 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         super.onDrawKeyTopVisuals(key, canvas, paint, params);
         final int code = key.getCode();
 
-        final SuggestedWords.SuggestedWordInfo octopusSuggestion =
-                mOctopusSuggestionMapper.getSuggestion(code);
-        if (octopusSuggestion != null && Character.isLetter(code)) {
-            drawOctopusSuggestion(key, octopusSuggestion.mWord, canvas);
+        if (isOctopusAlphabetKeyboard()) {
+            final SuggestedWords.SuggestedWordInfo octopusSuggestion =
+                    mOctopusSuggestionMapper.getSuggestion(code);
+            if (octopusSuggestion != null && Character.isLetter(code)
+                    && mOctopusVisibleKeys.get(Character.toLowerCase(code), false)) {
+                drawOctopusSuggestion(key, octopusSuggestion.mWord,
+                        mOctopusSuggestionMapper.isCorrection(code), canvas);
+            } else if (code == Constants.CODE_COMMA) {
+                drawOctopusSuggestion(key, "?", false, canvas);
+            } else if (code == Constants.CODE_PERIOD) {
+                drawOctopusSuggestion(key, "!", false, canvas);
+            }
         }
 
         if (code == Constants.CODE_SPACE) {
@@ -748,33 +823,42 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
     }
 
-    private void drawOctopusSuggestion(@NonNull final Key key, @NonNull final String word,
-            @NonNull final Canvas canvas) {
+    private void configureOctopusSuggestionPaint(@NonNull final Key key,
+            @NonNull final String word) {
         final Paint paint = mOctopusSuggestionPaint;
         paint.setTypeface(Typeface.DEFAULT_BOLD);
         paint.setTextAlign(Align.CENTER);
+        paint.setTextScaleX(1.0f);
 
-        final float maxWidth = key.getDrawWidth() * 1.9f;
-        float textSize = Math.max(13.0f, key.getHeight() * 0.20f);
+        // Original Octopus used compact labels that could span neighboring keys.
+        // Keep them readable without letting a single very long candidate dominate a row.
+        final float maxWidth = key.getDrawWidth() * 2.25f;
+        float textSize = Math.max(10.0f, key.getHeight() * 0.15f);
         paint.setTextSize(textSize);
         final float measured = paint.measureText(word);
         if (measured > maxWidth && measured > 0.0f) {
             textSize *= maxWidth / measured;
-            paint.setTextSize(Math.max(11.0f, textSize));
+            paint.setTextSize(Math.max(9.0f, textSize));
         }
+    }
+
+    private void drawOctopusSuggestion(@NonNull final Key key, @NonNull final String word,
+            final boolean isCorrection, @NonNull final Canvas canvas) {
+        final Paint paint = mOctopusSuggestionPaint;
+        configureOctopusSuggestionPaint(key, word);
 
         final float x = key.getDrawWidth() * 0.5f;
-        final float y = Math.max(paint.getTextSize(), key.getHeight() * 0.23f);
+        final float y = Math.max(paint.getTextSize(), key.getHeight() * 0.20f);
 
-        // Outline the word first so the suggestion stays readable over key hints,
-        // then fill it with the current theme's normal key-text color.
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(Math.max(1.5f, paint.getTextSize() * 0.10f));
+        paint.setStrokeWidth(Math.max(1.25f, paint.getTextSize() * 0.09f));
         paint.setColor(Color.BLACK);
         canvas.drawText(word, x, y, paint);
 
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Settings.getValues().mColors.get(ColorType.KEY_TEXT));
+        paint.setColor(isCorrection
+                ? Color.rgb(210, 45, 45)
+                : Settings.getValues().mColors.get(ColorType.KEY_TEXT));
         canvas.drawText(word, x, y, paint);
     }
 
