@@ -285,7 +285,9 @@ public class KeyboardView extends View {
             return;
         }
 
-        mShowsHints = Settings.getValues().mShowsHints;
+        // Octopus mode keeps the main letter keyboard visually clean: predictions
+        // are rendered on the keys themselves, so number/symbol hint labels are suppressed.
+        mShowsHints = Settings.getValues().mShowsHints && !(this instanceof MainKeyboardView);
         final float scale = Settings.getValues().mKeyboardHeightScale;
         mIconScaleFactor = scale < 0.8f ? scale + 0.2f : 1f;
         final Paint paint = mPaint;
