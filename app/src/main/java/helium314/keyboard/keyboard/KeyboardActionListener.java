@@ -84,7 +84,7 @@ public interface KeyboardActionListener {
      * Accepts the Octopus-style suggestion assigned to the key.
      * @return true when a suggestion was accepted.
      */
-    boolean onOctopusSuggestionSwipe(int keyCode);
+    boolean onOctopusSuggestionSwipe(int keyCode, boolean plural);
 
     /**
      * Called when user started batch input.
@@ -161,7 +161,7 @@ public interface KeyboardActionListener {
         @Override
         public boolean hasOctopusSuggestion(int keyCode) { return false; }
         @Override
-        public boolean onOctopusSuggestionSwipe(int keyCode) { return false; }
+        public boolean onOctopusSuggestionSwipe(int keyCode, boolean plural) { return false; }
         @Override
         public void onStartBatchInput() {}
         @Override
