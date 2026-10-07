@@ -747,8 +747,11 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 key = onDownKey(x, y + yOffset, eventTime);
             }
 
-            mOctopusSwipeCandidate = Character.isLetter(key.getCode())
-                    && sListener.hasOctopusSuggestion(key.getCode());
+            final int octopusCode = key.getCode();
+            mOctopusSwipeCandidate = (Character.isLetter(octopusCode)
+                    || octopusCode == Constants.CODE_COMMA
+                    || octopusCode == Constants.CODE_PERIOD)
+                    && sListener.hasOctopusSuggestion(octopusCode);
             if (mOctopusSwipeCandidate) {
                 mOctopusStartKey = key;
             }
@@ -1018,7 +1021,11 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (mOctopusSwipeCandidate) {
             final int dx = x - mStartX;
             final int dy = y - mStartY;
-            if (abs(dy) >= OCTOPUS_SWIPE_DISTANCE && abs(dx) < abs(dy)) {
+            final boolean punctuationKey = mOctopusStartKey != null
+                    && (mOctopusStartKey.getCode() == Constants.CODE_COMMA
+                    || mOctopusStartKey.getCode() == Constants.CODE_PERIOD);
+            if (abs(dy) >= OCTOPUS_SWIPE_DISTANCE && abs(dx) < abs(dy)
+                    && (dy < 0 || !punctuationKey)) {
                 mOctopusSwipeDetected = true;
                 mOctopusPluralSwipe = dy > 0;
                 mIsDetectingGesture = false;
