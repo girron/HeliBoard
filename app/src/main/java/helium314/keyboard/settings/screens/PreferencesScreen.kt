@@ -45,6 +45,7 @@ fun PreferencesScreen(
     val items = listOf(
         R.string.settings_category_input,
         Settings.PREF_SHOW_HINTS,
+        Settings.PREF_OCTOPUS_PREDICTION_SIZE,
         if (prefs.getBoolean(Settings.PREF_SHOW_HINTS, Defaults.PREF_SHOW_HINTS))
             Settings.PREF_POPUP_KEYS_HINT_ORDER else null,
         Settings.PREF_POPUP_KEYS_ORDER,
@@ -97,6 +98,17 @@ fun createPreferencesSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_SHOW_HINTS, R.string.show_hints, R.string.show_hints_summary) {
         SwitchPreference(it, Defaults.PREF_SHOW_HINTS) { KeyboardSwitcher.getInstance().reloadKeyboard() }
+    },
+    Setting(context, Settings.PREF_OCTOPUS_PREDICTION_SIZE, R.string.octopus_prediction_size) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_OCTOPUS_PREDICTION_SIZE,
+            description = { "$it%" },
+            range = 70f..160f,
+            stepSize = 5,
+            onConfirmed = { KeyboardSwitcher.getInstance().reloadKeyboard() }
+        )
     },
     Setting(context, Settings.PREF_POPUP_KEYS_HINT_ORDER, R.string.hint_source) {
         ReorderSwitchPreference(it, Defaults.PREF_POPUP_KEYS_HINT_ORDER)
