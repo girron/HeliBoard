@@ -345,6 +345,19 @@ public class SettingsValues {
     }
 
     public boolean needsToLookupSuggestions() {
+        // Octopus predictions live on the keys, so they still need dictionary
+        // candidates in browser text/search fields even when the app disables
+        // the normal suggestion strip. Keep password handling untouched and do
+        // not enable autocorrection here.
+        final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
+        final int variation = mInputAttributes.mInputType & InputType.TYPE_MASK_VARIATION;
+        final boolean octopusWebField = !mInputAttributes.mIsPasswordField
+                && inputClass == InputType.TYPE_CLASS_TEXT
+                && (variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
+                    || variation == InputType.TYPE_TEXT_VARIATION_URI);
+        if (octopusWebField) {
+            return true;
+        }
         return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
                 && (mAutoCorrectEnabled || mSuggestionsEnabled);
     }
