@@ -314,6 +314,9 @@
     <!-- Title of the setting to show key hints -->
     <string name="show_hints">Show key hints</string>
     <string name="octopus_prediction_size">Octopus prediction size</string>
+    <string name="octopus_idle_predictions">Show Octopus predictions before typing</string>
+    <string name="octopus_split_spacebar">Octopus split spacebar</string>
+    <string name="octopus_split_spacebar_summary">After a space or accepted prediction, split the spacebar into comma and period until typing resumes</string>
     <!-- Description of the settings to show hints -->
     <string name="show_hints_summary">Show long-press hints</string>
     <!-- Preferences item to set popup key order and select hints source -->
