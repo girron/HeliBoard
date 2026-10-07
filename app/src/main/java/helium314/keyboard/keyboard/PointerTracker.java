@@ -769,20 +769,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                         || octopusCode == Constants.CODE_COMMA
                         || octopusCode == Constants.CODE_PERIOD)
                         && sListener.hasOctopusSuggestion(octopusCode);
-                if (mOctopusSplitSpaceCandidate) {
-            final int dx = x - mStartX;
-            final int dy = y - mStartY;
-            if (abs(dy) >= OCTOPUS_SWIPE_DISTANCE && dy < 0 && abs(dx) < abs(dy)) {
-                mOctopusSplitSpaceFlickDetected = true;
-                sTimerProxy.cancelKeyTimersOf(this);
-                setReleasedKeyGraphics(oldKey, true);
-            }
-            // The split spacebar owns this touch from down to up. The half is chosen
-            // at touch-down so sliding across the divider cannot accidentally change punctuation.
-            return;
-        }
-
-        if (mOctopusSwipeCandidate) {
+                if (mOctopusSwipeCandidate) {
                     mOctopusStartKey = key;
                 }
             }
@@ -1057,6 +1044,19 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private void onMoveEventInternal(final int x, final int y, final long eventTime) {
         final Key oldKey = mCurrentKey;
+
+        if (mOctopusSplitSpaceCandidate) {
+            final int dx = x - mStartX;
+            final int dy = y - mStartY;
+            if (abs(dy) >= OCTOPUS_SWIPE_DISTANCE && dy < 0 && abs(dx) < abs(dy)) {
+                mOctopusSplitSpaceFlickDetected = true;
+                sTimerProxy.cancelKeyTimersOf(this);
+                setReleasedKeyGraphics(oldKey, true);
+            }
+            // The split spacebar owns this touch from down to up. The half is chosen
+            // at touch-down so sliding across the divider cannot accidentally change punctuation.
+            return;
+        }
 
         if (mOctopusSwipeCandidate) {
             final int dx = x - mStartX;
