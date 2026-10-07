@@ -833,12 +833,12 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         // Original Octopus used compact labels that could span neighboring keys.
         // Keep them readable without letting a single very long candidate dominate a row.
         final float maxWidth = key.getDrawWidth() * 2.25f;
-        float textSize = Math.max(10.0f, key.getHeight() * 0.15f);
+        float textSize = Math.max(12.0f, key.getHeight() * 0.19f);
         paint.setTextSize(textSize);
         final float measured = paint.measureText(word);
         if (measured > maxWidth && measured > 0.0f) {
             textSize *= maxWidth / measured;
-            paint.setTextSize(Math.max(9.0f, textSize));
+            paint.setTextSize(Math.max(10.5f, textSize));
         }
     }
 
