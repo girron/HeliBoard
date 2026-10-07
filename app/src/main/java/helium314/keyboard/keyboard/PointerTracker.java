@@ -155,6 +155,13 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private boolean mOctopusSwipeDetected = false;
     private boolean mOctopusPluralSwipe = false;
 
+    // Original Octopus can temporarily turn the spacebar into two punctuation
+    // targets while between words.
+    private Key mOctopusSplitSpaceKey = null;
+    private boolean mOctopusSplitSpaceCandidate = false;
+    private boolean mOctopusSplitSpaceFlickDetected = false;
+    private boolean mOctopusSplitSpaceRightHalf = false;
+
     // true if keyboard layout has been changed.
     private boolean mKeyboardLayoutHasBeenChanged;
     private int keyboardChangeOccupiedHeightDifference;
@@ -695,7 +702,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         // disabled when the key is repeating.
         mIsDetectingGesture = (mKeyboard != null) && mKeyboard.mId.getElement().isAlphabet()
                 && key != null && !key.isModifier() && !mKeySwipeAllowed && !sInKeySwipe
-                && !mOctopusSwipeCandidate;
+                && !mOctopusSwipeCandidate && !mOctopusSplitSpaceCandidate;
         if (mIsDetectingGesture) {
             mBatchInputArbiter.addDownEventPoint(x, y, eventTime,
                     sTypingTimeRecorder.getLastLetterTypingTime(), getActivePointerTrackerCount());
@@ -724,7 +731,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mIsAllowedDraggingFinger = sParams.mKeySelectionByDraggingFinger
                 || (key != null && key.isModifier())
                 || mKeyDetector.alwaysAllowsKeySelectionByDraggingFinger();
-        if (key != null && isSwiper(key.getCode()) && !sInGesture) {
+        final boolean octopusSplitSpace = isOctopusSplitSpaceKey(key);
+        if (key != null && isSwiper(key.getCode()) && !sInGesture && !octopusSplitSpace) {
             mKeySwipeAllowed = true;
             sInKeySwipe = true;
         }
@@ -735,6 +743,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mOctopusSwipeCandidate = false;
         mOctopusSwipeDetected = false;
         mOctopusPluralSwipe = false;
+        mOctopusSplitSpaceKey = null;
+        mOctopusSplitSpaceCandidate = false;
+        mOctopusSplitSpaceFlickDetected = false;
+        mOctopusSplitSpaceRightHalf = false;
         if (key != null) {
             // This onPress call may have changed keyboard layout. Those cases are detected at
             // {@link #setKeyboard}. In those cases, we should update key according to the new
@@ -748,16 +760,37 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             }
 
             final int octopusCode = key.getCode();
-            mOctopusSwipeCandidate = (Character.isLetter(octopusCode)
-                    || octopusCode == Constants.CODE_COMMA
-                    || octopusCode == Constants.CODE_PERIOD)
-                    && sListener.hasOctopusSuggestion(octopusCode);
-            if (mOctopusSwipeCandidate) {
-                mOctopusStartKey = key;
+            if (octopusSplitSpace && octopusCode == Constants.CODE_SPACE) {
+                mOctopusSplitSpaceKey = key;
+                mOctopusSplitSpaceCandidate = true;
+                mOctopusSplitSpaceRightHalf = x >= key.getX() + key.getWidth() / 2;
+            } else {
+                mOctopusSwipeCandidate = (Character.isLetter(octopusCode)
+                        || octopusCode == Constants.CODE_COMMA
+                        || octopusCode == Constants.CODE_PERIOD)
+                        && sListener.hasOctopusSuggestion(octopusCode);
+                if (mOctopusSplitSpaceCandidate) {
+            final int dx = x - mStartX;
+            final int dy = y - mStartY;
+            if (abs(dy) >= OCTOPUS_SWIPE_DISTANCE && dy < 0 && abs(dx) < abs(dy)) {
+                mOctopusSplitSpaceFlickDetected = true;
+                sTimerProxy.cancelKeyTimersOf(this);
+                setReleasedKeyGraphics(oldKey, true);
+            }
+            // The split spacebar owns this touch from down to up. The half is chosen
+            // at touch-down so sliding across the divider cannot accidentally change punctuation.
+            return;
+        }
+
+        if (mOctopusSwipeCandidate) {
+                    mOctopusStartKey = key;
+                }
             }
 
             startRepeatKey(key);
-            startLongPressTimer(key);
+            if (!mOctopusSplitSpaceCandidate) {
+                startLongPressTimer(key);
+            }
             setPressedKeyGraphics(key, eventTime);
             mStartX = x;
             mStartY = y;
@@ -784,6 +817,13 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mIsInDraggingFinger = false;
         mIsInSlidingKeyInput = false;
         sDrawingProxy.showSlidingKeyInputPreview(null);
+    }
+
+    private boolean isOctopusSplitSpaceKey(@Nullable final Key key) {
+        return key != null
+                && key.getCode() == Constants.CODE_SPACE
+                && sDrawingProxy instanceof MainKeyboardView
+                && ((MainKeyboardView)sDrawingProxy).isOctopusSplitSpacebarActive();
     }
 
     private boolean isSwiper(final int code) {
@@ -1039,7 +1079,28 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             if (abs(dy) >= OCTOPUS_DIRECTION_LOCK_DISTANCE && abs(dx) < abs(dy)) {
                 return;
             }
-            if (mOctopusSwipeDetected) {
+            if (mOctopusSplitSpaceCandidate) {
+            final Key splitKey = mOctopusSplitSpaceKey;
+            final boolean rightHalf = mOctopusSplitSpaceRightHalf;
+            final boolean flickUp = mOctopusSplitSpaceFlickDetected;
+            mOctopusSplitSpaceKey = null;
+            mOctopusSplitSpaceCandidate = false;
+            mOctopusSplitSpaceFlickDetected = false;
+            mOctopusSplitSpaceRightHalf = false;
+
+            if (splitKey != null) {
+                final int code = rightHalf
+                        ? (flickUp ? '!' : '.')
+                        : (flickUp ? '?' : ',');
+                sTypingTimeRecorder.onCodeInput(code, eventTime);
+                sListener.onCodeInput(code, Constants.NOT_A_COORDINATE,
+                        Constants.NOT_A_COORDINATE, false);
+                callListenerOnRelease(splitKey, splitKey.getCode(), true);
+            }
+            return;
+        }
+
+        if (mOctopusSwipeDetected) {
                 return;
             }
         }
@@ -1293,6 +1354,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         setReleasedKeyGraphics(mCurrentKey, true);
         resetKeySelectionByDraggingFinger();
         dismissPopupKeysPanel();
+        mOctopusSplitSpaceKey = null;
+        mOctopusSplitSpaceCandidate = false;
+        mOctopusSplitSpaceFlickDetected = false;
+        mOctopusSplitSpaceRightHalf = false;
     }
 
     private boolean isMajorEnoughMoveToBeOnNewKey(final int x, final int y, final long eventTime,
