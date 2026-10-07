@@ -73,6 +73,10 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     /** Listener for {@link KeyboardActionListener}. */
     private KeyboardActionListener mKeyboardActionListener;
 
+    // Octopus-style per-key suggestions.
+    private final OctopusSuggestionMapper mOctopusSuggestionMapper = new OctopusSuggestionMapper();
+    private final Paint mOctopusSuggestionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
     /* Space key and its icon and background. */
     private Key mSpaceKey;
     // Stuff to draw language name on spacebar.
@@ -282,6 +286,20 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     public void setKeyboardActionListener(final KeyboardActionListener listener) {
         mKeyboardActionListener = listener;
         PointerTracker.setKeyboardActionListener(listener);
+    }
+
+    public void setOctopusSuggestions(@Nullable final SuggestedWords suggestedWords) {
+        mOctopusSuggestionMapper.update(suggestedWords);
+        invalidateAllKeys();
+    }
+
+    public boolean hasOctopusSuggestion(final int keyCode) {
+        return mOctopusSuggestionMapper.hasSuggestion(keyCode);
+    }
+
+    @Nullable
+    public SuggestedWords.SuggestedWordInfo getOctopusSuggestion(final int keyCode) {
+        return mOctopusSuggestionMapper.getSuggestion(keyCode);
     }
 
     // TODO: We should reconsider which coordinate system should be used to represent keyboard event.
@@ -709,6 +727,13 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
         super.onDrawKeyTopVisuals(key, canvas, paint, params);
         final int code = key.getCode();
+
+        final SuggestedWords.SuggestedWordInfo octopusSuggestion =
+                mOctopusSuggestionMapper.getSuggestion(code);
+        if (octopusSuggestion != null && Character.isLetter(code)) {
+            drawOctopusSuggestion(key, octopusSuggestion.mWord, canvas);
+        }
+
         if (code == Constants.CODE_SPACE) {
             // If input language are explicitly selected.
             if (mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
@@ -721,6 +746,29 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
             drawKeyPopupHint(key, canvas, paint, params);
         }
+    }
+
+    private void drawOctopusSuggestion(@NonNull final Key key, @NonNull final String word,
+            @NonNull final Canvas canvas) {
+        final Paint paint = mOctopusSuggestionPaint;
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        paint.setTextAlign(Align.CENTER);
+        paint.setColor(Settings.getValues().mColors.get(ColorType.KEY_TEXT));
+
+        final float maxWidth = key.getDrawWidth() * 1.75f;
+        float textSize = Math.max(12.0f, key.getHeight() * 0.16f);
+        paint.setTextSize(textSize);
+        final float measured = paint.measureText(word);
+        if (measured > maxWidth && measured > 0.0f) {
+            textSize *= maxWidth / measured;
+            paint.setTextSize(Math.max(10.0f, textSize));
+        }
+
+        // Keep the first MVP inside the key's upper edge so software-rendering clipping
+        // cannot hide it. We can move it into the inter-row gap once gesture behavior is solid.
+        final float x = key.getDrawWidth() * 0.5f;
+        final float y = Math.max(paint.getTextSize(), key.getHeight() * 0.22f);
+        canvas.drawText(word, x, y, paint);
     }
 
     private boolean fitsTextIntoWidth(final int width, final String text, final Paint paint) {
