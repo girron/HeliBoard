@@ -166,9 +166,31 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun hasOctopusSuggestion(keyCode: Int): Boolean =
         keyboardSwitcher.mainKeyboardView?.hasOctopusSuggestion(keyCode) == true
 
-    override fun onOctopusSuggestionSwipe(keyCode: Int): Boolean {
+    override fun onOctopusSuggestionSwipe(keyCode: Int, plural: Boolean): Boolean {
         val suggestion = keyboardSwitcher.mainKeyboardView?.getOctopusSuggestion(keyCode) ?: return false
-        latinIME.pickSuggestionManually(suggestion)
+
+        val suggestionToCommit = if (!plural) {
+            suggestion
+        } else {
+            val lower = suggestion.mWord.lowercase()
+            val pluralWord = when {
+                lower.endsWith("s") || lower.endsWith("es") -> suggestion.mWord
+                lower.endsWith("ch") || lower.endsWith("sh") -> suggestion.mWord + "es"
+                else -> suggestion.mWord + "s"
+            }
+
+            helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo(
+                pluralWord,
+                suggestion.mPrevWordsContext,
+                suggestion.mScore,
+                suggestion.mKindAndFlags,
+                suggestion.mSourceDict,
+                suggestion.mIndexOfTouchPointOfSecondWord,
+                suggestion.mAutoCommitFirstWordConfidence
+            )
+        }
+
+        latinIME.pickSuggestionManually(suggestionToCommit)
         return true
     }
 
