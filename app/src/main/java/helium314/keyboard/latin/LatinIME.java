@@ -783,6 +783,9 @@ public class LatinIME extends InputMethodService implements
         if (hasSuggestionStripView()) {
             mSuggestionStripView.setRtl(mRichImm.getCurrentSubtype().isRtlSubtype());
             mSuggestionStripView.setListener(this, view);
+            // Octopus mode uses the same suggestion engine, but renders candidates on
+            // individual letter keys instead of in HeliBoard's normal suggestion strip.
+            mSuggestionStripView.setVisibility(View.GONE);
         }
     }
 
@@ -1502,6 +1505,14 @@ public class LatinIME extends InputMethodService implements
         if (mainKeyboardView != null) {
             mainKeyboardView.setOctopusSuggestions(suggestedWords);
         }
+
+        // Keep HeliBoard generating/ranking suggestions for Octopus, but never render
+        // the normal top suggestion strip in this branch.
+        if (hasSuggestionStripView()) {
+            mSuggestionStripView.setVisibility(View.GONE);
+            return;
+        }
+
         // TODO: Modify this when we support suggestions with hard keyboard
         if (!hasSuggestionStripView()) {
             return;
