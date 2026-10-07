@@ -76,6 +76,17 @@ public interface KeyboardActionListener {
     void onContent(InputContentInfoCompat content);
 
     /**
+     * Returns whether the key currently has an Octopus-style suggestion assigned to it.
+     */
+    boolean hasOctopusSuggestion(int keyCode);
+
+    /**
+     * Accepts the Octopus-style suggestion assigned to the key.
+     * @return true when a suggestion was accepted.
+     */
+    boolean onOctopusSuggestionSwipe(int keyCode);
+
+    /**
      * Called when user started batch input.
      */
     void onStartBatchInput();
@@ -147,6 +158,10 @@ public interface KeyboardActionListener {
         public void onTextInput(String text) {}
         @Override
         public void onContent(InputContentInfoCompat content) {}
+        @Override
+        public boolean hasOctopusSuggestion(int keyCode) { return false; }
+        @Override
+        public boolean onOctopusSuggestionSwipe(int keyCode) { return false; }
         @Override
         public void onStartBatchInput() {}
         @Override
