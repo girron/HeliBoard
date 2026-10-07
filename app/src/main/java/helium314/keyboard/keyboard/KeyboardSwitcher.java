@@ -235,7 +235,10 @@ public final class KeyboardSwitcher {
             @NonNull final SettingsValues settingsValues,
             @NonNull final KeyboardSwitchState toggleState) {
         final int visibility = isImeSuppressedByHardwareKeyboard(settingsValues, toggleState) ? View.GONE : View.VISIBLE;
-        final int stripVisibility = mLatinIME.hasSuggestionStripView()? View.VISIBLE : View.GONE;
+        // Octopus mode renders suggestions directly on letter keys. Keep the whole
+        // normal strip container hidden while the main keyboard is active so layout
+        // switches cannot briefly make it visible and cause a flash/flicker.
+        final int stripVisibility = View.GONE;
         mStripContainer.setVisibility(stripVisibility);
         PointerTracker.switchTo(mKeyboardView);
         mKeyboardView.setVisibility(visibility);
