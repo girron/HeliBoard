@@ -855,9 +855,9 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final Paint paint = mOctopusSuggestionPaint;
         final float width = key.getDrawWidth();
         final float height = key.getHeight();
-        final float outerMargin = KtxKt.dpToPx(1.0f, getResources());
-        final float centerGap = KtxKt.dpToPx(4.0f, getResources());
-        final float radius = KtxKt.dpToPx(6.0f, getResources());
+        final float outerMargin = KtxKt.dpToPx(1, getResources());
+        final float centerGap = KtxKt.dpToPx(4, getResources());
+        final float radius = KtxKt.dpToPx(6, getResources());
         final int textColor = Settings.getValues().mColors.get(ColorType.KEY_TEXT);
         final int backgroundColor = Settings.getValues().mColors.get(ColorType.MAIN_BACKGROUND);
         final int buttonColor = Settings.getValues().mColors.get(ColorType.SPACE_BAR_BACKGROUND);
