@@ -313,6 +313,7 @@
     <string name="save_subtype_per_app">Remember language per app</string>
     <!-- Title of the setting to show key hints -->
     <string name="show_hints">Show key hints</string>
+    <string name="octopus_prediction_size">Octopus prediction size</string>
     <!-- Description of the settings to show hints -->
     <string name="show_hints_summary">Show long-press hints</string>
     <!-- Preferences item to set popup key order and select hints source -->
