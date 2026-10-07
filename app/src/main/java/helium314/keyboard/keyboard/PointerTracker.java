@@ -731,7 +731,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mIsAllowedDraggingFinger = sParams.mKeySelectionByDraggingFinger
                 || (key != null && key.isModifier())
                 || mKeyDetector.alwaysAllowsKeySelectionByDraggingFinger();
-        final boolean octopusSplitSpace = isOctopusSplitSpaceKey(key);
+        final boolean octopusSplitSpace = isOctopusSplitPunctuationZoneKey(key);
         if (key != null && isSwiper(key.getCode()) && !sInGesture && !octopusSplitSpace) {
             mKeySwipeAllowed = true;
             sInKeySwipe = true;
@@ -760,10 +760,17 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             }
 
             final int octopusCode = key.getCode();
-            if (octopusSplitSpace && octopusCode == Constants.CODE_SPACE) {
+            if (octopusSplitSpace) {
                 mOctopusSplitSpaceKey = key;
                 mOctopusSplitSpaceCandidate = true;
-                mOctopusSplitSpaceRightHalf = x >= key.getX() + key.getWidth() / 2;
+                if (octopusCode == Constants.CODE_PERIOD) {
+                    mOctopusSplitSpaceRightHalf = true;
+                } else if (octopusCode == Constants.CODE_COMMA) {
+                    mOctopusSplitSpaceRightHalf = false;
+                } else {
+                    // The actual space key is the middle portion of the visual pair.
+                    mOctopusSplitSpaceRightHalf = x >= key.getX() + key.getWidth() / 2;
+                }
             } else {
                 mOctopusSwipeCandidate = (Character.isLetter(octopusCode)
                         || octopusCode == Constants.CODE_COMMA
@@ -806,11 +813,16 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         sDrawingProxy.showSlidingKeyInputPreview(null);
     }
 
-    private boolean isOctopusSplitSpaceKey(@Nullable final Key key) {
-        return key != null
-                && key.getCode() == Constants.CODE_SPACE
-                && sDrawingProxy instanceof MainKeyboardView
-                && ((MainKeyboardView)sDrawingProxy).isOctopusSplitSpacebarActive();
+    private boolean isOctopusSplitPunctuationZoneKey(@Nullable final Key key) {
+        if (key == null
+                || !(sDrawingProxy instanceof MainKeyboardView)
+                || !((MainKeyboardView)sDrawingProxy).isOctopusSplitSpacebarActive()) {
+            return false;
+        }
+        final int code = key.getCode();
+        return code == Constants.CODE_COMMA
+                || code == Constants.CODE_SPACE
+                || code == Constants.CODE_PERIOD;
     }
 
     private boolean isSwiper(final int code) {
