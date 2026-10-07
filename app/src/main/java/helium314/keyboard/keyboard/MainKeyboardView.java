@@ -753,21 +753,28 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final Paint paint = mOctopusSuggestionPaint;
         paint.setTypeface(Typeface.DEFAULT_BOLD);
         paint.setTextAlign(Align.CENTER);
-        paint.setColor(Settings.getValues().mColors.get(ColorType.KEY_TEXT));
 
-        final float maxWidth = key.getDrawWidth() * 1.75f;
-        float textSize = Math.max(12.0f, key.getHeight() * 0.16f);
+        final float maxWidth = key.getDrawWidth() * 1.9f;
+        float textSize = Math.max(13.0f, key.getHeight() * 0.20f);
         paint.setTextSize(textSize);
         final float measured = paint.measureText(word);
         if (measured > maxWidth && measured > 0.0f) {
             textSize *= maxWidth / measured;
-            paint.setTextSize(Math.max(10.0f, textSize));
+            paint.setTextSize(Math.max(11.0f, textSize));
         }
 
-        // Keep the first MVP inside the key's upper edge so software-rendering clipping
-        // cannot hide it. We can move it into the inter-row gap once gesture behavior is solid.
         final float x = key.getDrawWidth() * 0.5f;
-        final float y = Math.max(paint.getTextSize(), key.getHeight() * 0.22f);
+        final float y = Math.max(paint.getTextSize(), key.getHeight() * 0.23f);
+
+        // Outline the word first so the suggestion stays readable over key hints,
+        // then fill it with the current theme's normal key-text color.
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1.5f, paint.getTextSize() * 0.10f));
+        paint.setColor(Color.BLACK);
+        canvas.drawText(word, x, y, paint);
+
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Settings.getValues().mColors.get(ColorType.KEY_TEXT));
         canvas.drawText(word, x, y, paint);
     }
 
