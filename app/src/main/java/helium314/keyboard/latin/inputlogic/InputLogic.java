@@ -1629,14 +1629,24 @@ public final class InputLogic {
             return false;
         }
 
+        final boolean isOctopusPunctuationInput = mOctopusPunctuationInput;
         final boolean isFromSuggestionStrip =
-                event.isSuggestionStripPress() || mOctopusPunctuationInput;
+                event.isSuggestionStripPress() || isOctopusPunctuationInput;
         mOctopusPunctuationInput = false;
         if (Constants.CODE_ENTER == codePoint &&
                 SpaceState.SWAP_PUNCTUATION == inputTransaction.getSpaceState()) {
             mConnection.removeTrailingSpace();
             return false;
         }
+        // The Octopus split-spacebar is driven by the actual editor text, not only
+        // HeliBoard's transient space state. For period/comma, always replace the
+        // existing trailing space with punctuation plus a new trailing space.
+        if (isOctopusPunctuationInput
+                && (codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA)
+                && mConnection.getCodePointBeforeCursor() == Constants.CODE_SPACE) {
+            return true;
+        }
+
         if ((SpaceState.WEAK == inputTransaction.getSpaceState()
                 || SpaceState.SWAP_PUNCTUATION == inputTransaction.getSpaceState())
                 && isFromSuggestionStrip) {
