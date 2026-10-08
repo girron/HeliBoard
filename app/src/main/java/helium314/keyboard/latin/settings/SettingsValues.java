@@ -363,9 +363,17 @@ public class SettingsValues {
         // want dictionary candidates even when the app suppresses a conventional strip.
         // Keep passwords, email/URI/password-style special fields, and non-text inputs
         // on their normal paths; this only broadens lookup for ordinary text entry.
+        final String targetPackage = mInputAttributes.mTargetApplicationPackageName;
+        final boolean octopusBraveField = "com.brave.browser".equals(targetPackage)
+                || "com.brave.browser_beta".equals(targetPackage)
+                || "com.brave.browser_nightly".equals(targetPackage);
         final boolean octopusGeneralTextField = !mInputAttributes.mIsPasswordField
                 && inputClass == InputType.TYPE_CLASS_TEXT
-                && mInputAttributes.mIsGeneralTextInput;
+                && mInputAttributes.mIsGeneralTextInput
+                // Octopus23 already had the correct Brave omnibox behavior. Keep Brave
+                // on that proven path while retaining Octopus24's broader lookup fix
+                // for Compose-style editors such as Gemini.
+                && !octopusBraveField;
 
         if (octopusWebField || octopusGeneralTextField) {
             return true;
