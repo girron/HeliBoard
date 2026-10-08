@@ -1,6 +1,6 @@
 # Octopus Keyboard 🐙
 
-**An experimental Android keyboard with word predictions on the keys.**
+**Octopus Keyboard brings iOS jailbreak-inspired predictive typing to Android, displaying word suggestions directly on the keys rather than relying on a traditional suggestion bar.**
 
 Octopus Keyboard is a work-in-progress fork of [HeliBoard](https://github.com/HeliBorg/HeliBoard), focused on bringing **per-key word predictions** to a customizable, offline-capable Android keyboard.
 
