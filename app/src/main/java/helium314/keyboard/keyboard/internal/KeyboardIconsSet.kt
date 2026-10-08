@@ -25,6 +25,7 @@ class KeyboardIconsSet private constructor() {
         val defaultIds = when (iconStyle) {
             KeyboardTheme.STYLE_HOLO -> keyboardIconsHolo
             KeyboardTheme.STYLE_ROUNDED -> keyboardIconsRounded
+            KeyboardTheme.STYLE_STORM -> keyboardIconsHolo
             else -> keyboardIconsMaterial
         }
         val overrideIds = customIconIds(context, prefs)
@@ -296,6 +297,7 @@ class KeyboardIconsSet private constructor() {
                 name to when (iconStyle) {
                     KeyboardTheme.STYLE_HOLO -> listOfNotNull(keyboardIconsHolo[name], keyboardIconsRounded[name], id)
                     KeyboardTheme.STYLE_ROUNDED -> listOfNotNull(keyboardIconsRounded[name], id, keyboardIconsHolo[name])
+                    KeyboardTheme.STYLE_STORM -> listOfNotNull(keyboardIconsHolo[name], keyboardIconsRounded[name], id)
                     else -> listOfNotNull(id, keyboardIconsRounded[name], keyboardIconsHolo[name])
                 }
             }

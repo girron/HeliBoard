@@ -47,6 +47,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val STYLE_MATERIAL = "Material"
         const val STYLE_HOLO = "Holo"
         const val STYLE_ROUNDED = "Rounded"
+        const val STYLE_STORM = "Storm"
 
         // new themes that are just colors
         const val THEME_LIGHT = "light"
@@ -54,6 +55,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_DARK = "dark"
         const val THEME_DARKER = "darker"
         const val THEME_BLACK = "black"
+        const val THEME_STORM_BLACK = "storm_black"
         const val THEME_DYNAMIC = "dynamic"
         const val THEME_BLUE_GRAY = "blue_gray"
         const val THEME_BROWN = "brown"
@@ -71,6 +73,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             if (prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE) == STYLE_HOLO) THEME_HOLO_WHITE else null,
             THEME_DARKER,
             THEME_BLACK,
+            if (prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE) == STYLE_STORM) THEME_STORM_BLACK else null,
             if (!isNight) THEME_BLUE_GRAY else null,
             if (!isNight) THEME_BROWN else null,
             THEME_CHOCOLATE,
@@ -82,7 +85,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             if (!isNight) THEME_SAND else null,
             THEME_VIOLETTE
         )
-        val STYLES = arrayOf(STYLE_MATERIAL, STYLE_HOLO, STYLE_ROUNDED)
+        val STYLES = arrayOf(STYLE_MATERIAL, STYLE_HOLO, STYLE_ROUNDED, STYLE_STORM)
 
         // These should be aligned with Keyboard.themeId and Keyboard.Case.keyboardTheme
         // attributes' values in attrs.xml.
@@ -91,6 +94,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         private const val THEME_ID_LXX_BASE_BORDER = 2
         private const val THEME_ID_ROUNDED_BASE = 3
         private const val THEME_ID_ROUNDED_BASE_BORDER = 4
+        private const val THEME_ID_STORM_BASE = 5
         private const val DEFAULT_THEME_ID = THEME_ID_LXX_BASE
 
         private val KEYBOARD_THEMES = arrayOf(
@@ -98,7 +102,8 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             KeyboardTheme(THEME_ID_LXX_BASE, R.style.KeyboardTheme_LXX_Base),
             KeyboardTheme(THEME_ID_LXX_BASE_BORDER, R.style.KeyboardTheme_LXX_Base_Border),
             KeyboardTheme(THEME_ID_ROUNDED_BASE, R.style.KeyboardTheme_Rounded_Base),
-            KeyboardTheme(THEME_ID_ROUNDED_BASE_BORDER, R.style.KeyboardTheme_Rounded_Base_Border)
+            KeyboardTheme(THEME_ID_ROUNDED_BASE_BORDER, R.style.KeyboardTheme_Rounded_Base_Border),
+            KeyboardTheme(THEME_ID_STORM_BASE, R.style.KeyboardTheme_Storm)
         )
 
         // named colors, with names from old settings
@@ -120,6 +125,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             val borders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
             val matchingId = when (style) {
                 STYLE_HOLO -> THEME_ID_HOLO_BASE
+                STYLE_STORM -> THEME_ID_STORM_BASE
                 STYLE_ROUNDED -> if (borders) THEME_ID_ROUNDED_BASE_BORDER else THEME_ID_ROUNDED_BASE
                 else -> if (borders) THEME_ID_LXX_BASE_BORDER else THEME_ID_LXX_BASE
             }
@@ -145,7 +151,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         }
 
         private fun getThemeColors(themeName: String, themeStyle: String, context: Context, prefs: SharedPreferences, isNight: Boolean): Colors {
-            val hasBorders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
+            val hasBorders = themeStyle == STYLE_STORM || prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
             val backgroundImage = Settings.readUserBackgroundImage(context, isNight)
             return when (themeName) {
                 THEME_DYNAMIC -> {
@@ -201,6 +207,21 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     ContextCompat.getColor(context, R.color.key_text_color_lxx_dark),
                     ContextCompat.getColor(context, R.color.key_hint_letter_color_lxx_dark),
                     keyboardBackground = backgroundImage
+                )
+                // White tint keeps the chrome/gloss layers of the Storm drawables intact.
+                THEME_STORM_BLACK -> DefaultColors(
+                    themeStyle, true,
+                    Color.WHITE,                // chrome should never be color-tinted
+                    "#060606".toColorInt(),   // keyboard backing
+                    Color.WHITE,                // keys (the drawable supplies black)
+                    Color.WHITE,                // modifier keys
+                    Color.WHITE,                // spacebar
+                    Color.WHITE,                // key legends
+                    "#E7E7E7".toColorInt(),   // Octopus shard / hint legends
+                    Color.WHITE,                // suggestions
+                    Color.WHITE,                // spacebar legend
+                    Color.WHITE,                // gesture
+                    backgroundImage
                 )
                 THEME_BLACK -> DefaultColors(
                     themeStyle,

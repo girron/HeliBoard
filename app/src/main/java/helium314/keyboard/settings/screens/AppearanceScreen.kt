@@ -114,11 +114,27 @@ fun createAppearanceSettings(context: Context) = listOf(
             items,
             Defaults.PREF_THEME_STYLE
         ) {
-            if (it != KeyboardTheme.STYLE_HOLO) {
-                if (prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS) == KeyboardTheme.THEME_HOLO_WHITE)
-                    prefs.edit { remove(Settings.PREF_THEME_COLORS) }
-                if (prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT) == KeyboardTheme.THEME_HOLO_WHITE)
-                    prefs.edit { remove(Settings.PREF_THEME_COLORS_NIGHT) }
+            if (it == KeyboardTheme.STYLE_STORM) {
+                // Selecting the Storm style also selects its matching chrome-safe colors.
+                prefs.edit {
+                    putBoolean(Settings.PREF_THEME_KEY_BORDERS, true)
+                    putString(Settings.PREF_THEME_COLORS, KeyboardTheme.THEME_STORM_BLACK)
+                    putString(Settings.PREF_THEME_COLORS_NIGHT, KeyboardTheme.THEME_STORM_BLACK)
+                }
+            } else {
+                prefs.edit {
+                    // Don't leave the Storm-specific white tint palette on a flat style.
+                    if (prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS) == KeyboardTheme.THEME_STORM_BLACK)
+                        remove(Settings.PREF_THEME_COLORS)
+                    if (prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT) == KeyboardTheme.THEME_STORM_BLACK)
+                        remove(Settings.PREF_THEME_COLORS_NIGHT)
+                    if (it != KeyboardTheme.STYLE_HOLO) {
+                        if (prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS) == KeyboardTheme.THEME_HOLO_WHITE)
+                            remove(Settings.PREF_THEME_COLORS)
+                        if (prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT) == KeyboardTheme.THEME_HOLO_WHITE)
+                            remove(Settings.PREF_THEME_COLORS_NIGHT)
+                    }
+                }
             }
             KeyboardIconsSet.needsReload = true // only relevant for Settings.PREF_CUSTOM_ICON_NAMES
             KeyboardSwitcher.getInstance().setThemeNeedsReload()

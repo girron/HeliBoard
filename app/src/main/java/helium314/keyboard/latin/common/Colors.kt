@@ -24,6 +24,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
 import helium314.keyboard.keyboard.KeyboardTheme.Companion.STYLE_HOLO
 import helium314.keyboard.keyboard.KeyboardTheme.Companion.STYLE_MATERIAL
+import helium314.keyboard.keyboard.KeyboardTheme.Companion.STYLE_STORM
 import helium314.keyboard.latin.common.ColorType.*
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.adjustLuminosityAndKeepAlpha
@@ -268,6 +269,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
 
         actionKeyIconColorFilter = when {
             themeStyle == STYLE_HOLO -> keyTextFilter
+            themeStyle == STYLE_STORM -> null // keep solid white action icons on black chrome keys
             // the white icon may not have enough contrast, and can't be adjusted by the user
             isBrightColor(accent) -> colorFilter(Color.DKGRAY)
             else -> null
@@ -467,6 +469,7 @@ class DefaultColors (
         keyTextFilter = colorFilter(keyText)
         actionKeyIconColorFilter = when {
             themeStyle == STYLE_HOLO -> keyTextFilter
+            themeStyle == STYLE_STORM -> null // keep solid white action icons on black chrome keys
             // the white icon may not have enough contrast, and can't be adjusted by the user
             isBrightColor(accent) -> colorFilter(Color.DKGRAY)
             else -> null

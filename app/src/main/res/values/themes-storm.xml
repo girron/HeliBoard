@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Storm: beveled charcoal keycaps, chromed rims, white Octopus legends. -->
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <style name="KeyboardTheme.Storm" parent="KeyboardTheme.Rounded_Base_Border">
+        <item name="keyboardStyle">@style/Keyboard.Storm</item>
+        <item name="keyboardViewStyle">@style/KeyboardView.Storm</item>
+        <item name="mainKeyboardViewStyle">@style/MainKeyboardView.Storm</item>
+        <item name="emojiPalettesViewStyle">@style/EmojiPalettesView.Storm</item>
+        <item name="clipboardHistoryViewStyle">@style/ClipboardHistoryView.Storm</item>
+        <item name="popupKeysKeyboardViewStyle">@style/PopupKeysKeyboardView.Storm</item>
+        <item name="suggestionStripViewStyle">@style/SuggestionStripView.Storm</item>
+    </style>
+    <style name="Keyboard.Storm" parent="Keyboard.Rounded_Base_Border">
+        <item name="themeId">StormBase</item>
+    </style>
+    <style name="KeyboardView.Storm" parent="KeyboardView.Rounded_Base_Border">
+        <item name="android:background">#060606</item>
+        <item name="keyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="functionalKeyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="spacebarBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="keyHintLetterPadding">4dp</item>
+        <item name="keyTextShadowRadius">-1.0</item>
+    </style>
+    <style name="MainKeyboardView.Storm" parent="MainKeyboardView.Rounded_Base_Border">
+        <item name="android:background">#060606</item>
+        <item name="keyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="functionalKeyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="spacebarBackground">@drawable/btn_keyboard_key_storm</item>
+    </style>
+    <style name="EmojiPalettesView.Storm" parent="EmojiPalettesView.Rounded_Base_Border">
+        <item name="android:background">#060606</item>
+        <item name="keyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="functionalKeyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="spacebarBackground">@drawable/btn_keyboard_key_storm</item>
+    </style>
+    <style name="ClipboardHistoryView.Storm" parent="ClipboardHistoryView.Rounded_Base_Border">
+        <item name="android:background">#060606</item>
+        <item name="keyBackground">@drawable/btn_keyboard_key_storm</item>
+        <item name="functionalKeyBackground">@drawable/btn_keyboard_key_storm</item>
+    </style>
+    <style name="PopupKeysKeyboardView.Storm" parent="PopupKeysKeyboardView.Rounded_Base_Border">
+        <item name="keyBackground">@drawable/btn_keyboard_key_storm</item>
+    </style>
+    <style name="SuggestionStripView.Storm" parent="SuggestionStripView.Rounded_Base_Border">
+        <item name="android:background">#060606</item>
+    </style>
+</resources>
