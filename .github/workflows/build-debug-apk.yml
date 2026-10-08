@@ -2,8 +2,10 @@ name: Build debug APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ build/octopus26-a1 ]
+  # Pull-request builds can restore the signing cache from the octopus-mvp base branch.
+  # The separate build branch cannot access that cache via workflow_dispatch or push.
+  pull_request:
+    branches: [ octopus-mvp ]
     paths:
       - 'app/**'
       - '.github/workflows/build-debug-apk.yml'
@@ -59,6 +61,15 @@ jobs:
       - name: Show cached signing certificate
         run: |
           keytool -list -v             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey | grep -E 'SHA256:|Valid from:'
+
+      - name: Require original Octopus signing certificate
+        run: |
+          EXPECTED="36:19:34:24:BF:46:D3:32:41:F3:35:2C:C5:2F:46:4C:DB:8F:13:15:07:0D:32:D8:96:FE:9C:7B:E3:F3:07:60"
+          ACTUAL="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/.*SHA256: //p' | head -1)"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Signing certificate differs from the original Octopus26 certificate; refusing to publish an incompatible APK."
+            exit 1
+          fi
 
       - name: Build with Gradle
         env:
