@@ -1881,7 +1881,9 @@ public final class InputLogic {
         // For addition to user history we want suggestions (even if just for autocorrect) or a gestured word.
         // That's to avoid unintended additions in some sensitive fields, or fields that
         // expect to receive non-words.
-        if ((!settingsValues.needsToLookupSuggestions() && !mWordComposer.isBatchMode()) || TextUtils.isEmpty(suggestion))
+        if (((!settingsValues.needsToLookupSuggestions()
+                || settingsValues.isOctopusPredictionOnlyLookup())
+                && !mWordComposer.isBatchMode()) || TextUtils.isEmpty(suggestion))
             return;
         boolean wasAutoCapitalized = mWordComposer.wasAutoCapitalized() && !mWordComposer.isMostlyCaps();
         String word = StringUtilsKt.stripTrailingSeparatorsAndConnectors(suggestion, settingsValues.mSpacingAndPunctuations);
@@ -2821,6 +2823,8 @@ public final class InputLogic {
         mWordComposer.adviseCapitalizedModeBeforeFetchingSuggestions(
                 getActualCapsMode(settingsValues, KeyboardSwitcher.getInstance().getKeyboardCapsMode()));
         try {
+            final boolean autoCorrectForLookup = settingsValues.mAutoCorrectEnabled
+                    && !settingsValues.isOctopusPredictionOnlyLookup();
             SuggestedWords suggestedWords = mSuggest.getSuggestedWords(mWordComposer.copy(),
                     getNgramContextFromNthPreviousWordForSuggestion(
                     settingsValues.mSpacingAndPunctuations,
@@ -2830,7 +2834,7 @@ public final class InputLogic {
                     mWordComposer.isComposingWord() ? 2 : 1),
                     keyboard,
                     settingsValues.mSettingsValuesForSuggestion,
-                    settingsValues.mAutoCorrectEnabled,
+                    autoCorrectForLookup,
                     inputStyle, sequenceNumber);
             callback.onGetSuggestedWords(suggestedWords);
         } catch (Exception e) {
