@@ -1326,7 +1326,28 @@ public final class InputLogic {
 
             enterInlineEmojiSearchIfNeeded(codePoint, settingsValues);
 
+            // Octopus accepts suggestions with real trailing spaces, but manually typed
+            // words must get the same punctuation spacing. Only append at the end of
+            // ordinary text fields, after a word, so edits inside text, URLs and
+            // decimal punctuation are not changed by this path.
+            final boolean appendOctopusPunctuationSpace =
+                    settingsValues.mInputAttributes.mIsGeneralTextInput
+                    && (codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA
+                            || codePoint == '?' || codePoint == '!')
+                    && !mConnection.hasSelection()
+                    && !mConnection.hasTextAfterCursor()
+                    && Character.isLetterOrDigit(mConnection.getCodePointBeforeCursor());
             mConnection.commitCodePoint(codePoint);
+            if (appendOctopusPunctuationSpace) {
+                mConnection.commitCodePoint(Constants.CODE_SPACE);
+                mSpaceState = SpaceState.WEAK;
+                inputTransaction.setRequiresUpdateSuggestions();
+            }
+            if (codePoint == Constants.CODE_ENTER) {
+                // Enter leaves us with an empty composer on a new line. Refresh
+                // zero-prefix predictions rather than leaving the last strip empty.
+                inputTransaction.setRequiresUpdateSuggestions();
+            }
 
             if (isInlineEmojiSearchAction()) {
                 inputTransaction.setRequiresUpdateSuggestions();
