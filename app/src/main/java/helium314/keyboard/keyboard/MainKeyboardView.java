@@ -17,6 +17,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.graphics.Paint.Align;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
@@ -29,6 +30,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import helium314.keyboard.accessibility.AccessibilityUtils;
 import helium314.keyboard.accessibility.MainKeyboardAccessibilityDelegate;
@@ -80,6 +82,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     private final Paint mOctopusSuggestionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final SparseBooleanArray mOctopusVisibleKeys = new SparseBooleanArray();
     private boolean mOctopusSplitSpacebarActive = false;
+    @Nullable private Drawable mOctopusStormSplitKey;
 
     /* Bottom-row punctuation/space keys used by Octopus' between-word overlay. */
     private Key mCommaKey;
@@ -905,16 +908,30 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
                 right - outerMargin,
                 bottom - outerMargin);
 
-        paint.setColor(buttonColor);
-        canvas.drawRoundRect(leftButton, radius, radius, paint);
-        canvas.drawRoundRect(rightButton, radius, radius, paint);
+        if (KeyboardTheme.STYLE_STORM.equals(Settings.getValues().mColors.getThemeStyle())) {
+            // The Storm tint palette is intentionally white so normal keys retain
+            // their chrome gradients. The split-spacebar overlay is drawn manually
+            // and must use that same keycap drawable, not fill a white roundRect.
+            if (mOctopusStormSplitKey == null) {
+                mOctopusStormSplitKey = ContextCompat.getDrawable(
+                        getContext(), R.drawable.btn_keyboard_key_storm);
+            }
+            if (mOctopusStormSplitKey != null) {
+                drawOctopusSplitChromeKey(canvas, leftButton);
+                drawOctopusSplitChromeKey(canvas, rightButton);
+            }
+        } else {
+            paint.setColor(buttonColor);
+            canvas.drawRoundRect(leftButton, radius, radius, paint);
+            canvas.drawRoundRect(rightButton, radius, radius, paint);
 
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(Math.max(1.0f, KtxKt.dpToPx(1, getResources())));
-        paint.setColor(textColor);
-        paint.setAlpha(48);
-        canvas.drawRoundRect(leftButton, radius, radius, paint);
-        canvas.drawRoundRect(rightButton, radius, radius, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(1.0f, KtxKt.dpToPx(1, getResources())));
+            paint.setColor(textColor);
+            paint.setAlpha(48);
+            canvas.drawRoundRect(leftButton, radius, radius, paint);
+            canvas.drawRoundRect(rightButton, radius, radius, paint);
+        }
 
         paint.setAlpha(255);
         paint.setStyle(Paint.Style.FILL);
@@ -934,6 +951,18 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final float hintY = top + Math.max(paint.getTextSize(), height * 0.24f);
         canvas.drawText("?", leftCenter, hintY, paint);
         canvas.drawText("!", rightCenter, hintY, paint);
+    }
+
+    private void drawOctopusSplitChromeKey(@NonNull final Canvas canvas,
+            @NonNull final RectF bounds) {
+        if (mOctopusStormSplitKey == null) {
+            return;
+        }
+        mOctopusStormSplitKey.setState(new int[0]);
+        mOctopusStormSplitKey.setBounds(
+                Math.round(bounds.left), Math.round(bounds.top),
+                Math.round(bounds.right), Math.round(bounds.bottom));
+        mOctopusStormSplitKey.draw(canvas);
     }
 
     private void configureOctopusSuggestionPaint(@NonNull final Key key,
