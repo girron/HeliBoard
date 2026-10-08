@@ -4,6 +4,8 @@
 
 Octopus Keyboard is a work-in-progress fork of [HeliBoard](https://github.com/HeliBorg/HeliBoard), focused on bringing **per-key word predictions** to a customizable, offline-capable Android keyboard.
 
+**Private by design. Predictive by nature.** Octopus Keyboard runs its dictionary-based predictions locally on your device, with no internet connection required.
+
 > **Project status: pre-release / private beta preparation.** Features and compatibility are still being tested. The Octopus name and icon are being integrated; current development APKs may still display HeliBoard branding.
 
 [Report a bug](https://github.com/girron/Octopus-Keyboard/issues/new) · [View development builds](https://github.com/girron/Octopus-Keyboard/actions/workflows/build-debug-apk.yml) · [Source code](https://github.com/girron/Octopus-Keyboard) · [Upstream HeliBoard](https://github.com/HeliBorg/HeliBoard)
