@@ -1551,12 +1551,36 @@ public class LatinIME extends InputMethodService implements
         mainKeyboardView.setOctopusSplitSpacebarActive(active);
     }
 
+    private boolean shouldPreserveOctopusPredictionsAfterMidSentencePunctuation(
+            final SuggestedWords suggestedWords, final SettingsValues settingsValues) {
+        if (!(suggestedWords.isEmpty() || suggestedWords.isPunctuationSuggestions())
+                || !settingsValues.mInputAttributes.mIsGeneralTextInput
+                || mInputLogic.mConnection.hasSelection()
+                || mInputLogic.mConnection.hasTextAfterCursor()) {
+            return false;
+        }
+
+        // Comma/semicolon/colon often produce no HeliBoard next-word candidates even
+        // though Octopus already has useful predictions from the preceding trailing
+        // space. Keep those visible rather than replacing them with an empty mapper.
+        final CharSequence beforeCursor = mInputLogic.mConnection.getTextBeforeCursor(2, 0);
+        if (beforeCursor == null || beforeCursor.length() < 2
+                || beforeCursor.charAt(beforeCursor.length() - 1) != Constants.CODE_SPACE) {
+            return false;
+        }
+        final char punctuation = beforeCursor.charAt(beforeCursor.length() - 2);
+        return punctuation == Constants.CODE_COMMA || punctuation == ';' || punctuation == ':';
+    }
+
     private void setSuggestedWords(final SuggestedWords suggestedWords) {
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
         mInputLogic.setSuggestedWords(suggestedWords);
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
-            mainKeyboardView.setOctopusSuggestions(suggestedWords);
+            if (!shouldPreserveOctopusPredictionsAfterMidSentencePunctuation(
+                    suggestedWords, currentSettingsValues)) {
+                mainKeyboardView.setOctopusSuggestions(suggestedWords);
+            }
             // An asynchronous empty/punctuation-only result must not wipe the
             // starter labels while the cursor is at an empty line or field.
             if (suggestedWords.isEmpty() || suggestedWords.isPunctuationSuggestions()) {
