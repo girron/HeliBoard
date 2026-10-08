@@ -683,7 +683,8 @@ class InputLogicTest {
         assertEquals("hello.", text)
     }
 
-    @Test fun `prediction-only lookup does not learn typed words`() {
+    @Test fun `prediction-only lookup does not autocorrect or learn typed words`() {
+        latinIME.prefs().edit { putBoolean(Settings.PREF_MORE_AUTO_CORRECTION, true) }
         setInputType(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
         lastAddedWord = ""
 
@@ -691,6 +692,14 @@ class InputLogicTest {
         assertEquals("octopustest", composingText)
         assertEquals(true, settingsValues.needsToLookupSuggestions())
         assertEquals(true, settingsValues.isOctopusPredictionOnlyLookup())
+
+        // Even if a stale/foreign suggestion claims it can autocorrect, a field that
+        // only has lookup enabled for Octopus' per-key predictions must commit the
+        // user's typed text unchanged and must not learn it.
+        val corrected = SuggestedWordInfo("octopus", "", 0, 0, null, 0, 0)
+        val typed = SuggestedWordInfo("octopustest", "", 0, 0, null, 0, 0)
+        val words = SuggestedWords(ArrayList(listOf(typed, corrected)), null, typed, false, true, false, 0, 0)
+        latinIME.mInputLogic.setSuggestedWords(words)
 
         input(' ')
         assertEquals("octopustest ", text)
