@@ -1336,7 +1336,7 @@ public final class InputLogic {
                             || codePoint == '?' || codePoint == '!')
                     && !mConnection.hasSelection()
                     && !mConnection.hasTextAfterCursor()
-                    && Character.isLetterOrDigit(mConnection.getCodePointBeforeCursor());
+                    && Character.isLetter(mConnection.getCodePointBeforeCursor());
             mConnection.commitCodePoint(codePoint);
             if (appendOctopusPunctuationSpace) {
                 mConnection.commitCodePoint(Constants.CODE_SPACE);
