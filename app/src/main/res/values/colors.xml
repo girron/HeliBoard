@@ -73,4 +73,6 @@
 
     <!-- Scrollbar color -->
     <color name="toolbar_scrollbar">#66808080</color>
+    <!-- Octopus Keyboard A1 launcher palette -->
+    <color name="octopus_a1_background">#06102C</color>
 </resources>

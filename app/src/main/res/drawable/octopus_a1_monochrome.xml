@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A simple monochrome counterpart to the Octopus Keyboard A1 artwork. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Head -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M54,24 C44,24 38,33 38,42 C38,49 42,54 48,56 L60,56 C66,54 70,49 70,42 C70,33 64,24 54,24 Z"/>
+    <!-- Curled arms -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6.5" android:strokeLineCap="round"
+        android:pathData="M40,48 C32,61 18,54 24,44 C27,39 33,41 32,46 M68,48 C76,61 90,54 84,44 C81,39 75,41 76,46"/>
+    <!-- Lower tentacles -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6" android:strokeLineCap="round"
+        android:pathData="M44,51 C37,63 22,58 22,71 C22,77 29,79 33,73 M64,51 C71,63 86,58 86,71 C86,77 79,79 75,73 M49,53 C48,63 37,64 40,74 C42,79 48,79 51,75 M59,53 C60,63 71,64 68,74 C66,79 60,79 57,75"/>
+    <!-- Keyboard keycaps -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M40,79h8v7h-8z M51,79h8v7h-8z M62,79h8v7h-8z"/>
+</vector>
