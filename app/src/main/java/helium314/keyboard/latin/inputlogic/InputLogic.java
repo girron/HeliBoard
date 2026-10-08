@@ -87,6 +87,12 @@ public final class InputLogic {
     private static final char INLINE_EMOJI_SEARCH_MARKER = ':';
     private static final int[] EMPTY_CODE_POINTS = new int[0];
 
+    private static boolean isBravePackage(@Nullable final String packageName) {
+        return "com.brave.browser".equals(packageName)
+                || "com.brave.browser_beta".equals(packageName)
+                || "com.brave.browser_nightly".equals(packageName);
+    }
+
     // TODO : Remove this member when we can.
     final LatinIME mLatinIME;
     private final SuggestionStripViewAccessor mSuggestionStripViewAccessor;
@@ -1017,7 +1023,22 @@ public final class InputLogic {
         inputTransaction.setDidAffectContents();
         if (event.getCodePoint() == Constants.CODE_ENTER) {
             final EditorInfo editorInfo = getCurrentInputEditorInfo();
-            final int imeOptionsActionId = InputTypeUtils.getImeOptionsActionIdFromEditorInfo(editorInfo);
+            int imeOptionsActionId = InputTypeUtils.getImeOptionsActionIdFromEditorInfo(editorInfo);
+
+            // Brave can update the omnibox EditorInfo after the keyboard has already
+            // been rendered. If the visible key is Search/Go but a fresh lookup says
+            // NONE, pressing that key inserts a newline. For Brave, execute the same
+            // action represented by the currently displayed keyboard key.
+            if (editorInfo != null && isBravePackage(editorInfo.packageName)) {
+                final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
+                if (keyboard != null) {
+                    final int renderedAction = keyboard.mId.getImeAction();
+                    if (EditorInfo.IME_ACTION_NONE != renderedAction) {
+                        imeOptionsActionId = renderedAction;
+                    }
+                }
+            }
+
             if (InputTypeUtils.IME_ACTION_CUSTOM_LABEL == imeOptionsActionId) {
                 // Either we have an actionLabel and we should performEditorAction with
                 // actionId regardless of its value.
