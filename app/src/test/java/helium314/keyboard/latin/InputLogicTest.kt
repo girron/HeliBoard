@@ -664,6 +664,39 @@ class InputLogicTest {
         assertEquals("hello", text)
     }
 
+    @Test fun `backspace after autocorrect punctuation does not revert stale commit`() {
+        setInputType(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_CORRECT)
+        chainInput("hullo")
+
+        val corrected = SuggestedWordInfo("hello", "", 0, 0, null, 0, 0)
+        val typed = SuggestedWordInfo("hullo", "", 0, 0, null, 0, 0)
+        val words = SuggestedWords(ArrayList(listOf(typed, corrected)), null, typed, false, true, false, 0, 0)
+        latinIME.mInputLogic.setSuggestedWords(words)
+
+        input('.')
+        assertEquals("hello. ", text)
+
+        // Octopus punctuation has changed the suffix after the autocorrect commit.
+        // Backspace must fall through to a normal delete instead of attempting a
+        // stale autocorrect revert.
+        functionalKeyPress(KeyCode.DELETE)
+        assertEquals("hello.", text)
+    }
+
+    @Test fun `prediction-only lookup does not learn typed words`() {
+        setInputType(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        lastAddedWord = ""
+
+        chainInput("octopustest")
+        assertEquals("octopustest", composingText)
+        assertEquals(true, settingsValues.needsToLookupSuggestions())
+        assertEquals(true, settingsValues.isOctopusPredictionOnlyLookup())
+
+        input(' ')
+        assertEquals("octopustest ", text)
+        assertEquals("", lastAddedWord)
+    }
+
     @Test fun `remove glide typing word on delete`() {
         glideTypingInput("hello")
         assertEquals("hello", text)
