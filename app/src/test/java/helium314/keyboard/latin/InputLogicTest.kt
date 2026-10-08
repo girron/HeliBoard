@@ -693,8 +693,10 @@ class InputLogicTest {
         lastAddedWord = ""
 
         chainInput("octopustest")
-        assertEquals("octopustest", composingText)
+        assertEquals("octopustest", text)
+        assertEquals("", composingText)
         assertEquals(true, settingsValues.needsToLookupSuggestions())
+        assertEquals(false, settingsValues.needsComposingSuggestionLookup())
         assertEquals(true, settingsValues.isOctopusPredictionOnlyLookup())
 
         // Even if a stale/foreign suggestion claims it can autocorrect, a field that
