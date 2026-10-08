@@ -1642,7 +1642,8 @@ public final class InputLogic {
         // HeliBoard's transient space state. For period/comma, always replace the
         // existing trailing space with punctuation plus a new trailing space.
         if (isOctopusPunctuationInput
-                && (codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA)
+                && (codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA
+                        || codePoint == '?' || codePoint == '!')
                 && mConnection.getCodePointBeforeCursor() == Constants.CODE_SPACE) {
             return true;
         }
