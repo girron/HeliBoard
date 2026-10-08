@@ -1331,19 +1331,31 @@ public final class InputLogic {
             // ordinary text fields, after a word, so edits inside text, URLs and
             // decimal punctuation are not changed by this path.
             final int octopusCodePointBeforeCursor = mConnection.getCodePointBeforeCursor();
+            final boolean isOctopusSentencePunctuation =
+                    codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA
+                            || codePoint == '?' || codePoint == '!';
             final boolean appendOctopusPunctuationSpace =
                     settingsValues.mInputAttributes.mIsGeneralTextInput
-                    && (codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA
-                            || codePoint == '?' || codePoint == '!')
+                    && isOctopusSentencePunctuation
                     && !mConnection.hasSelection()
                     && !mConnection.hasTextAfterCursor()
-                    && (Character.isLetter(octopusCodePointBeforeCursor)
-                            || ((codePoint == '?' || codePoint == '!')
-                                    && Character.isDigit(octopusCodePointBeforeCursor)));
+                    && Character.isLetter(octopusCodePointBeforeCursor);
+            final boolean useOctopusPhantomSpaceAfterNumber =
+                    settingsValues.mInputAttributes.mIsGeneralTextInput
+                    && (codePoint == '?' || codePoint == '!')
+                    && !mConnection.hasSelection()
+                    && !mConnection.hasTextAfterCursor()
+                    && Character.isDigit(octopusCodePointBeforeCursor);
             mConnection.commitCodePoint(codePoint);
             if (appendOctopusPunctuationSpace) {
                 mConnection.commitCodePoint(Constants.CODE_SPACE);
                 mSpaceState = SpaceState.WEAK;
+                inputTransaction.setRequiresUpdateSuggestions();
+            } else if (useOctopusPhantomSpaceAfterNumber) {
+                // Keep numeric sentence endings visually tight (for example "3.14?")
+                // but refresh predictions and materialize a space only if the user
+                // continues with another word or accepts a prediction.
+                mSpaceState = SpaceState.PHANTOM;
                 inputTransaction.setRequiresUpdateSuggestions();
             }
             if (codePoint == Constants.CODE_ENTER) {
