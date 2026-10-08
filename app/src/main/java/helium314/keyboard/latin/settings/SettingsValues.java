@@ -355,11 +355,19 @@ public class SettingsValues {
                 && inputClass == InputType.TYPE_CLASS_TEXT
                 && (variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
                     || variation == InputType.TYPE_TEXT_VARIATION_URI);
-        final boolean octopusGeminiField = !mInputAttributes.mIsPasswordField
+
+        // Some modern Compose-based editors (Gemini is one example) mark an otherwise
+        // ordinary text box as "no suggestions". That disables HeliBoard's normal
+        // candidate lookup before Octopus ever gets words to paint on the keys.
+        // Octopus predictions are their own UI, so for safe general text fields we still
+        // want dictionary candidates even when the app suppresses a conventional strip.
+        // Keep passwords, email/URI/password-style special fields, and non-text inputs
+        // on their normal paths; this only broadens lookup for ordinary text entry.
+        final boolean octopusGeneralTextField = !mInputAttributes.mIsPasswordField
                 && inputClass == InputType.TYPE_CLASS_TEXT
-                && "com.google.android.apps.bard".equals(
-                        mInputAttributes.mTargetApplicationPackageName);
-        if (octopusWebField || octopusGeminiField) {
+                && mInputAttributes.mIsGeneralTextInput;
+
+        if (octopusWebField || octopusGeneralTextField) {
             return true;
         }
         return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
