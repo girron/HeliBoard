@@ -1521,7 +1521,10 @@ public class LatinIME extends InputMethodService implements
         }
 
         final CharSequence beforeCursor = mInputLogic.mConnection.getTextBeforeCursor(1, 0);
-        return (beforeCursor == null || beforeCursor.length() == 0)
+        // The beginning of a new line needs the same zero-prefix fallback as an
+        // empty editor. Real dictionary predictions replace this when they arrive.
+        return (beforeCursor == null || beforeCursor.length() == 0
+                || beforeCursor.charAt(beforeCursor.length() - 1) == Constants.CODE_ENTER)
                 && !mInputLogic.mConnection.hasTextAfterCursor();
     }
 
@@ -1554,6 +1557,11 @@ public class LatinIME extends InputMethodService implements
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
             mainKeyboardView.setOctopusSuggestions(suggestedWords);
+            // An asynchronous empty/punctuation-only result must not wipe the
+            // starter labels while the cursor is at an empty line or field.
+            if (suggestedWords.isEmpty() || suggestedWords.isPunctuationSuggestions()) {
+                showOctopusStarterFallbackIfAppropriate();
+            }
         }
         updateOctopusSplitSpacebarState();
 
