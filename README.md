@@ -12,19 +12,9 @@ Octopus Keyboard is a work-in-progress fork of [HeliBoard](https://github.com/He
 
 ## What makes Octopus different?
 
-Octopus experiments with **showing word predictions above individual keyboard keys**, instead of relying solely on the usual suggestions row. The goal is to make suggestions accessible while keeping familiar typing behavior.
+Octopus puts dictionary-based **word predictions directly on individual keys**, rather than relying only on a traditional suggestion row. It is an experimental extension of [HeliBoard](https://github.com/HeliBorg/HeliBoard), retaining features such as autocorrection, custom themes and layouts, split keyboard, multilingual typing, emoji search, clipboard history, and settings backups.
 
-The project builds on HeliBoard's existing keyboard capabilities, including:
-
-- Dictionary-based suggestions, spell checking, and autocorrection
-- Custom themes, colors, and keyboard layouts
-- Split keyboard, one-handed mode, and multilingual layouts
-- Emoji search, clipboard history, and settings backups
-- Local operation without the Android `INTERNET` permission
-
-**Experimental behavior:** prediction availability can depend on the app and its text input field. Compatibility, including with Gemini, remains under active testing. A successful build does not guarantee that every prediction issue has been fixed.
-
-For details about features inherited from HeliBoard, see the [upstream wiki and FAQ](https://github.com/HeliBorg/HeliBoard/wiki) and the [layout documentation](layouts.md).
+Predictions run locally without an internet connection. Availability can still vary between apps and text fields, and compatibility is under active development. For inherited features, see the [HeliBoard wiki](https://github.com/HeliBorg/HeliBoard/wiki) and [layout documentation](layouts.md).
 
 ## Inspiration and origins
 
@@ -38,57 +28,28 @@ Built on the open-source **HeliBoard** project, Octopus Keyboard for Android aim
 
 This is an independent project, unaffiliated with the original Octopus Keyboard, Crimson Keyboard, or HeliBoard developers.
 
-## Try a development build
+## Getting started
 
-There is **no general beta release yet**. Until a reviewed beta APK is published, builds are primarily for development and testing.
+**There is no approved public beta release yet.** Current builds are experimental and intended for development testing. Some may still use HeliBoard branding.
 
-1. Open the [Build debug APK workflow](https://github.com/girron/Octopus-Keyboard/actions/workflows/build-debug-apk.yml).
-2. If you have permission, select **Run workflow** and choose the branch you want to test.
-3. After a successful run, download the APK artifact from the workflow run.
+- **[Install a development build](INSTALL.md)** — find an APK, install, enable, and update safely.
+- **[Testing checklist and known issues](TESTING.md)** — app compatibility, regression tests, and reporting results.
+- **[Development changelog](CHANGELOG.md)** — what changed in recent Octopus builds and what remains unverified.
+- **[Report a bug](https://github.com/girron/Octopus-Keyboard/issues/new)** — include version/commit, Android version, affected field, and reproduction steps; redact sensitive typing.
 
-Development builds can change without notice. The APK may still be named **HeliBoard**, and installation over an existing debug build can depend on matching its signing certificate and package ID. Back up your settings before experimenting.
+[Development build workflow](https://github.com/girron/Octopus-Keyboard/actions/workflows/build-debug-apk.yml) · [All GitHub Actions](https://github.com/girron/Octopus-Keyboard/actions)
 
-## Beta testing and bug reports
-
-Feedback is welcome, especially for predictions, autocorrect, punctuation spacing, input field compatibility, layout behavior, and crashes.
-
-[Open an Octopus Keyboard issue](https://github.com/girron/Octopus-Keyboard/issues/new) and include:
-
-- **Build/version** and, if possible, the commit SHA
-- **Device** and **Android version**
-- **App and field** where the problem occurred (for example, a browser address bar)
-- **Steps to reproduce**, expected behavior, and actual behavior
-- A screenshot or crash log **only if it does not expose passwords, private messages, or other sensitive typed text**
-
-Check [existing reports](https://github.com/girron/Octopus-Keyboard/issues) first to avoid duplicates.
-
-## Project development
+## Development status
 
 | Branch | Purpose |
 | --- | --- |
-| `main` | Upstream HeliBoard base |
-| `octopus-mvp` | Octopus behavior and bug-fix development |
-| `feature/octopus-beta-branding` | App identity, icon, and beta presentation |
+| `main` | Upstream-based mainline and project documentation |
+| `octopus-mvp` | Experimental Octopus typing behavior and fixes |
+| `feature/octopus-beta-branding` | Experimental app identity, icon, and beta presentation |
 
-Current beta-preparation goals:
+Before a public beta, priorities are to verify prediction behavior across apps, guard against Enter/autocorrect/backspace regressions, get automated tests green, confirm beta branding and signing, and validate installation and updates.
 
-- [ ] Apply Octopus Keyboard branding and the selected A1 launcher icon
-- [ ] Update the visible app name in Settings and Android's keyboard selector
-- [ ] Verify Gemini predictions without regressing previously tested fixes
-- [ ] Test installation, signing, upgrades, and everyday typing
-- [ ] Publish a clearly versioned beta for invited testers
-
-The checklist describes **planned verification**, not completed or released features.
-
-## Building from source
-
-This is an Android/Gradle project. With an appropriate Android SDK, NDK, and Java 17 environment, a debug build can be attempted using:
-
-```bash
-./gradlew assembleDebug
-```
-
-The [GitHub Actions workflow](.github/workflows/build-debug-apk.yml) documents the CI build configuration. For upstream technical details and contribution guidance, see [CONTRIBUTING.md](CONTRIBUTING.md).
+**Build from source:** On the appropriate development branch, with the Android SDK/NDK and Java 17 configured, use `./gradlew assembleDebug`. See the [workflow](.github/workflows/build-debug-apk.yml) and [upstream contribution guidance](CONTRIBUTING.md); the latter is inherited from HeliBoard and may describe upstream-specific policies.
 
 ## Privacy
 
