@@ -1,37 +1,46 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Octopus bug report
+about: Report a typing, prediction, layout, installation, or crash bug in Octopus Keyboard
+title: "[Bug] "
 labels: bug
 ---
 
-Please see the appropriate readme section for issue reporting guidelines: https://github.com/HeliBorg/HeliBoard?tab=readme-ov-file#reporting-issues
-tl;dr:
-* search for duplicates, also in closed issues
-* a single issue per topic
-* reduce screenshot size
-* write it yourself
+Thanks for testing Octopus Keyboard! Please check [existing issues](https://github.com/girron/Octopus-Keyboard/issues) and submit one issue per distinct problem. See the [testing guide](../../TESTING.md) for regression checks.
 
-<!--
-issue template below, please remove above text before submitting (and the template too if you think it's a good idea)
-Please choose a meaningful title for your issue, and consider that if you want help you should provide enough information that people can actually help
--->
+### Build details
+- Octopus version (e.g. Octopus25):
+- GitHub branch (e.g. `octopus-mvp` or `feature/octopus-beta-branding`):
+- Commit SHA or workflow run URL:
+- How installed / updated (if relevant):
 
-**Describe the bug**
+### Device details
+- Device model:
+- Android version:
+- Stock Android or custom ROM (name/version if relevant):
 
-**To Reproduce**
-If possible, provide all the necessary steps to reproduce your problem, including the involved apps and text field or settings if relevant.
-In case you cannot reproduce the bug, say so and provide information about when the bug may occur for you. Settings and the app you're writing in are usually important, please don't omit them.
+### Where it happens
+- App name (e.g. Brave, Gemini):
+- Text field (e.g. omnibox/search, message input):
+- Keyboard settings relevant to the issue:
 
-**Expected behavior**
-If it's not obvious (e.g. not crash), describe how you think the app should behave.
+### Steps to reproduce
+1.
+2.
+3.
 
-**Screenshots**
-ONLY add screenshots when they add real value.
-If you add screenshots, reduce the size or use thumbnails to keep the issue nicely readable.
+### Expected behavior
 
-**App version**
-Please provide the explicit version (not just "latest"), or if you build the app yourself specify the latest commit.
+### Actual behavior
 
-**Device:**
- - Model: [e.g. Samsung Galaxy S9]
- - OS: [e.g. Android 10] (please also mention whether you are using the manufacturer's OS or a custom ROM)
+### Frequency
+- [ ] Every time
+- [ ] Intermittent
+- [ ] Happened once
+
+### Regression check
+- Did this work in an earlier build? If yes, which one?
+
+### Evidence (optional)
+Include screenshots, a short recording, or redacted crash logs only if useful.
+
+**Privacy:** Never post passwords, personal messages, contacts, or other sensitive typed content in a public issue.
