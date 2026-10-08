@@ -514,7 +514,7 @@ public final class InputLogic {
         // should be true, but that is if the framework had taken that wrong cursor position
         // into account, which means we have to reset the entire composing state whenever there
         // is or was a selection regardless of whether it changed or not.
-        if (hasOrHadSelection || !settingsValues.needsToLookupSuggestions()
+        if (hasOrHadSelection || !settingsValues.needsComposingSuggestionLookup()
                 || (selectionChangedOrSafeToReset
                         && !mWordComposer.moveCursorByAndReturnIfInsideComposingWord(moveAmount))) {
             // If we are composing a word and moving the cursor, we would want to set a
@@ -1140,7 +1140,7 @@ public final class InputLogic {
 
         // if we continue directly after a sometimesWordConnector, restart suggestions for the whole word
         // (only with URL detection and suggestions enabled)
-        if (settingsValues.mUrlDetectionEnabled && settingsValues.needsToLookupSuggestions()
+        if (settingsValues.mUrlDetectionEnabled && settingsValues.needsComposingSuggestionLookup()
                 && !isComposingWord && SpaceState.NONE == inputTransaction.getSpaceState()
                 && settingsValues.mSpacingAndPunctuations.isSometimesWordConnector(mConnection.getCodePointBeforeCursor())
                 // but not if there are two consecutive sometimesWordConnectors (e.g. "...bla")
@@ -1198,7 +1198,7 @@ public final class InputLogic {
         // a letter or a word connector.
                 && settingsValues.isWordCodePoint(codePoint)
         // We never go into composing state if suggestions are not requested.
-                && settingsValues.needsToLookupSuggestions() &&
+                && settingsValues.needsComposingSuggestionLookup() &&
         // In languages with spaces, we only start composing a word when we are not already
         // in the middle or at the end of a word. In languages without spaces, the above conditions are sufficient.
         // NOTE: If the InputConnection is slow, we skip the text-after-cursor check since it
@@ -1670,6 +1670,12 @@ public final class InputLogic {
     }
 
     void unlearnWord(String word, SettingsValues settingsValues, DictionaryFacilitator.UnlearnEvent event) {
+        // Prediction-only fields are intentionally read-only from the dictionary's
+        // perspective. They may request candidates for Octopus' key labels, but they
+        // must not learn or unlearn words as a side effect.
+        if (settingsValues.isOctopusPredictionOnlyLookup()) {
+            return;
+        }
         NgramContext ngramContext = mConnection.getNgramContextFromNthPreviousWord(settingsValues.mSpacingAndPunctuations, 2);
         long timeStampInSeconds = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         mDictionaryFacilitator.unlearnFromUserHistory(word, ngramContext, timeStampInSeconds, event);
@@ -1912,6 +1918,7 @@ public final class InputLogic {
             || !settingsValues.mBigramPredictionEnabled // this is only for next word suggestions, so they need to be enabled
             || settingsValues.mIncognitoModeEnabled
             || !settingsValues.needsToLookupSuggestions()
+            || settingsValues.isOctopusPredictionOnlyLookup()
             || !StringUtilsKt.isEmoji(text)
             || mConnection.hasSlowInputConnection()
         ) return;
@@ -1996,6 +2003,14 @@ public final class InputLogic {
     public void restartSuggestionsOnWordTouchedByCursor(final SettingsValues settingsValues,
             // TODO: remove this argument, put it into settingsValues
             final String currentKeyboardScript) {
+        // Prediction-only editors must never receive a composing region just so Octopus
+        // can refresh its key labels. The regular update path rebuilds a temporary
+        // WordComposer from editor text instead.
+        if (settingsValues.isOctopusPredictionOnlyLookup()) {
+            mLatinIME.mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
+            return;
+        }
+
         // HACK: We may want to special-case some apps that exhibit bad behavior in case of
         // recorrection. This is a temporary, stopgap measure that will be removed later.
         // TODO: remove this.
@@ -2822,18 +2837,36 @@ public final class InputLogic {
             return;
         }
         final SettingsValues settingsValues = Settings.getValues();
-        mWordComposer.adviseCapitalizedModeBeforeFetchingSuggestions(
+        WordComposer composerForLookup = mWordComposer;
+        if (settingsValues.isOctopusPredictionOnlyLookup()) {
+            // The editor has opted out of normal suggestions/composing. Build a throwaway
+            // composer from the already-committed word at the cursor so Octopus can obtain
+            // candidates without touching the editor's composing region.
+            final String wordAtCursor = getWordAtCursor(settingsValues,
+                    KeyboardSwitcher.getInstance().getCurrentKeyboardScript());
+            final WordComposer predictionComposer = new WordComposer();
+            for (int i = 0; i < wordAtCursor.length();
+                    i = Character.offsetByCodePoints(wordAtCursor, i, 1)) {
+                final int codePoint = Character.codePointAt(wordAtCursor, i);
+                final Event processedEvent = predictionComposer.processEvent(
+                        Event.createEventForCodePointFromUnknownSource(codePoint));
+                predictionComposer.applyProcessedEvent(processedEvent);
+            }
+            composerForLookup = predictionComposer;
+        }
+        composerForLookup.adviseCapitalizedModeBeforeFetchingSuggestions(
                 getActualCapsMode(settingsValues, KeyboardSwitcher.getInstance().getKeyboardCapsMode()));
         try {
             final boolean autoCorrectForLookup = settingsValues.mAutoCorrectEnabled
                     && !settingsValues.isOctopusPredictionOnlyLookup();
-            SuggestedWords suggestedWords = mSuggest.getSuggestedWords(mWordComposer.copy(),
+            final WordComposer lookupSnapshot = composerForLookup.copy();
+            SuggestedWords suggestedWords = mSuggest.getSuggestedWords(lookupSnapshot,
                     getNgramContextFromNthPreviousWordForSuggestion(
                     settingsValues.mSpacingAndPunctuations,
-                    // Get the word on which we should search the bigrams. If we are composing
-                    // a word, it's whatever is *before* the half-committed word in the buffer,
-                    // hence 2; if we aren't, we should just skip whitespace if any, so 1.
-                    mWordComposer.isComposingWord() ? 2 : 1),
+                    // Prediction-only text is already committed in the editor, so skip that
+                    // current word when asking for n-gram context just as we do for a normal
+                    // composing word.
+                    composerForLookup.isComposingWord() ? 2 : 1),
                     keyboard,
                     settingsValues.mSettingsValuesForSuggestion,
                     autoCorrectForLookup,
