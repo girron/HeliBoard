@@ -202,6 +202,11 @@ public final class InputLogic {
     // it like a punctuation pick from the suggestion strip.
     private boolean mOctopusPunctuationInput = false;
 
+    // Numeric punctuation is ambiguous until the next key: "3.14" and "1,000"
+    // must stay tight, while "100! Next" and "100; Next" need a space only if
+    // typing actually continues.
+    private int mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
+
     private long mCursorMoveExpectedUntil = 0L;
 
     /**
@@ -245,6 +250,7 @@ public final class InputLogic {
         resetComposingState(true /* alsoResetLastComposedWord */);
         mDeleteCount = 0;
         mSpaceState = SpaceState.NONE;
+        mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
         mRecapitalizeStatus.disable(); // Do not perform recapitalize until the cursor is moved once
         mCurrentlyPressedHardwareKeys.clear();
         mSuggestedWords = SuggestedWords.getEmptyInstance();
@@ -295,6 +301,7 @@ public final class InputLogic {
         resetComposingState(true);
         mInputLogicHandler.reset();
         mSpaceState = SpaceState.NONE;
+        mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
     }
 
     /**
@@ -485,6 +492,7 @@ public final class InputLogic {
         // We set this to NONE because after a cursor move, we don't want the space
         // state-related special processing to kick in.
         mSpaceState = SpaceState.NONE;
+        mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
 
         final boolean selectionChangedOrSafeToReset =
                 oldSelStart != newSelStart || oldSelEnd != newSelEnd // selection changed
@@ -1125,7 +1133,13 @@ public final class InputLogic {
         }
         // TODO: remove isWordConnector() and use isUsuallyFollowedBySpace() instead.
         // See onStartBatchInput() to see how to do it.
+        final int deferredNumericPunctuation = mOctopusDeferredNumericPunctuation;
+        final boolean continuesNumericToken =
+                Character.isDigit(codePoint)
+                && (deferredNumericPunctuation == Constants.CODE_PERIOD
+                        || deferredNumericPunctuation == Constants.CODE_COMMA);
         if (SpaceState.PHANTOM == inputTransaction.getSpaceState()
+                && !continuesNumericToken
                 && !settingsValues.isWordConnector(codePoint)
                 && !settingsValues.isUsuallyFollowedBySpace(codePoint) // only relevant in rare cases
         ) {
@@ -1134,6 +1148,9 @@ public final class InputLogic {
                 throw new RuntimeException("Should not be composing here");
             }
             insertAutomaticSpaceIfOptionsAndTextAllow(settingsValues);
+        }
+        if (deferredNumericPunctuation != Constants.NOT_A_CODE) {
+            mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
         }
 
         if (mWordComposer.isCursorInFrontOfComposingWord()) {
@@ -1225,6 +1242,7 @@ public final class InputLogic {
             final LatinIME.UIHandler handler) {
         final int codePoint = event.getCodePoint();
         final SettingsValues settingsValues = inputTransaction.getSettingsValues();
+        mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
         final boolean wasComposingWord = mWordComposer.isComposingWord();
         // We avoid sending spaces in languages without spaces if we were composing.
         final boolean shouldAvoidSendingCode = Constants.CODE_SPACE == codePoint
@@ -1331,18 +1349,19 @@ public final class InputLogic {
             // ordinary text fields, after a word, so edits inside text, URLs and
             // decimal punctuation are not changed by this path.
             final int octopusCodePointBeforeCursor = mConnection.getCodePointBeforeCursor();
-            final boolean isOctopusSentencePunctuation =
+            final boolean isOctopusAutoSpacePunctuation =
                     codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA
+                            || codePoint == ';' || codePoint == ':'
                             || codePoint == '?' || codePoint == '!';
             final boolean appendOctopusPunctuationSpace =
                     settingsValues.mInputAttributes.mIsGeneralTextInput
-                    && isOctopusSentencePunctuation
+                    && isOctopusAutoSpacePunctuation
                     && !mConnection.hasSelection()
                     && !mConnection.hasTextAfterCursor()
                     && Character.isLetter(octopusCodePointBeforeCursor);
-            final boolean useOctopusPhantomSpaceAfterNumber =
+            final boolean deferOctopusPunctuationSpaceAfterNumber =
                     settingsValues.mInputAttributes.mIsGeneralTextInput
-                    && (codePoint == '?' || codePoint == '!')
+                    && isOctopusAutoSpacePunctuation
                     && !mConnection.hasSelection()
                     && !mConnection.hasTextAfterCursor()
                     && Character.isDigit(octopusCodePointBeforeCursor);
@@ -1351,10 +1370,11 @@ public final class InputLogic {
                 mConnection.commitCodePoint(Constants.CODE_SPACE);
                 mSpaceState = SpaceState.WEAK;
                 inputTransaction.setRequiresUpdateSuggestions();
-            } else if (useOctopusPhantomSpaceAfterNumber) {
-                // Keep numeric sentence endings visually tight (for example "3.14?")
-                // but refresh predictions and materialize a space only if the user
-                // continues with another word or accepts a prediction.
+            } else if (deferOctopusPunctuationSpaceAfterNumber) {
+                // Numeric punctuation is resolved by the next key. A following digit after
+                // period/comma continues values such as "3.14" or "1,000"; otherwise the
+                // phantom space materializes only when the user continues typing/picks a word.
+                mOctopusDeferredNumericPunctuation = codePoint;
                 mSpaceState = SpaceState.PHANTOM;
                 inputTransaction.setRequiresUpdateSuggestions();
             }
@@ -1384,6 +1404,7 @@ public final class InputLogic {
     private void handleBackspaceEvent(final Event event, final InputTransaction inputTransaction,
             final String currentKeyboardScript) {
         mSpaceState = SpaceState.NONE;
+        mOctopusDeferredNumericPunctuation = Constants.NOT_A_CODE;
         mDeleteCount++;
 
         // In many cases after backspace, we need to update the shift state. Normally we need
