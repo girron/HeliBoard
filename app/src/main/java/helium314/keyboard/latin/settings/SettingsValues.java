@@ -344,11 +344,29 @@ public class SettingsValues {
         mPunctuationSuggestions = Settings.readPunctuationSuggestions(context);
     }
 
+    private boolean needsNormalSuggestionLookup() {
+        return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
+                && (mAutoCorrectEnabled || mSuggestionsEnabled);
+    }
+
+    /**
+     * True when Octopus is deliberately looking up candidates only so it can paint
+     * predictions on the keys. In this mode the app/user settings would normally
+     * suppress dictionary lookup, so the override must not silently enable
+     * autocorrection or user-history learning as a side effect.
+     */
+    public boolean isOctopusPredictionOnlyLookup() {
+        final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
+        return !mInputAttributes.mIsPasswordField
+                && inputClass == InputType.TYPE_CLASS_TEXT
+                && mInputAttributes.mIsGeneralTextInput
+                && !needsNormalSuggestionLookup();
+    }
+
     public boolean needsToLookupSuggestions() {
         // Octopus predictions live on the keys, so they still need dictionary
         // candidates in browser text/search fields even when the app disables
-        // the normal suggestion strip. Keep password handling untouched and do
-        // not enable autocorrection here.
+        // the normal suggestion strip. Keep password handling untouched.
         final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
         final int variation = mInputAttributes.mInputType & InputType.TYPE_MASK_VARIATION;
         final boolean octopusWebField = !mInputAttributes.mIsPasswordField
@@ -357,21 +375,14 @@ public class SettingsValues {
                     || variation == InputType.TYPE_TEXT_VARIATION_URI);
 
         // Some modern Compose-based editors (Gemini is one example) mark an otherwise
-        // ordinary text box as "no suggestions". That disables HeliBoard's normal
-        // candidate lookup before Octopus ever gets words to paint on the keys.
-        // Octopus predictions are their own UI, so for safe general text fields we still
-        // want dictionary candidates even when the app suppresses a conventional strip.
-        // Keep passwords, email/URI/password-style special fields, and non-text inputs
-        // on their normal paths; this only broadens lookup for ordinary text entry.
+        // ordinary text box as "no suggestions". Octopus still needs candidates for
+        // its per-key prediction UI, but isOctopusPredictionOnlyLookup() keeps that
+        // override isolated from autocorrection and learning.
         final boolean octopusGeneralTextField = !mInputAttributes.mIsPasswordField
                 && inputClass == InputType.TYPE_CLASS_TEXT
                 && mInputAttributes.mIsGeneralTextInput;
 
-        if (octopusWebField || octopusGeneralTextField) {
-            return true;
-        }
-        return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
-                && (mAutoCorrectEnabled || mSuggestionsEnabled);
+        return octopusWebField || octopusGeneralTextField || needsNormalSuggestionLookup();
     }
 
     public boolean isWordSeparator(final int code) {
