@@ -358,26 +358,34 @@ public class SettingsValues {
                     || variation == InputType.TYPE_TEXT_VARIATION_URI);
     }
 
+    private boolean isOctopusGeneralTextField() {
+        final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
+        return !mInputAttributes.mIsPasswordField
+                && inputClass == InputType.TYPE_CLASS_TEXT
+                && mInputAttributes.mIsGeneralTextInput;
+    }
+
     /**
      * Lookup modes that may use HeliBoard's normal composing-region machinery.
-     * Web/URI fields keep the proven Octopus23 behavior; ordinary fields follow
-     * HeliBoard's normal suggestion/autocorrect settings.
+     * Octopus still needs its own candidate lookup in editors that hide the normal
+     * suggestion strip. If autocorrect is enabled for an ordinary text field, keep
+     * the real composing path so Space can commit the correction and Backspace can
+     * revert it. Prediction-only mode is reserved for fields where autocorrect is off.
      */
     public boolean needsComposingSuggestionLookup() {
-        return isOctopusWebField() || needsNormalSuggestionLookup();
+        return isOctopusWebField()
+                || needsNormalSuggestionLookup()
+                || (isOctopusGeneralTextField() && mAutoCorrectEnabled);
     }
 
     /**
      * True when Octopus is deliberately looking up candidates only so it can paint
-     * predictions on the keys. These editors asked HeliBoard not to use suggestions,
-     * so Octopus must not turn on composing spans, autocorrection, or dictionary
-     * learning merely to obtain prediction candidates.
+     * predictions on the keys. This path is read-only and must not disable an
+     * autocorrect path that the editor/settings actually enabled.
      */
     public boolean isOctopusPredictionOnlyLookup() {
-        final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
-        return !mInputAttributes.mIsPasswordField
-                && inputClass == InputType.TYPE_CLASS_TEXT
-                && mInputAttributes.mIsGeneralTextInput
+        return isOctopusGeneralTextField()
+                && !mAutoCorrectEnabled
                 && !needsNormalSuggestionLookup();
     }
 

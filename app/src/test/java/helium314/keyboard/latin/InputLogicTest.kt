@@ -664,6 +664,23 @@ class InputLogicTest {
         assertEquals("hello", text)
     }
 
+    @Test fun `autocorrect survives no suggestions flag when editor enables autocorrect`() {
+        setInputType(InputType.TYPE_CLASS_TEXT
+                or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                or InputType.TYPE_TEXT_FLAG_AUTO_CORRECT)
+
+        assertEquals(true, settingsValues.mAutoCorrectEnabled)
+        assertEquals(true, settingsValues.needsComposingSuggestionLookup())
+        assertEquals(false, settingsValues.isOctopusPredictionOnlyLookup())
+
+        chainInput("waht")
+        getAutocorrectedWithSpaceAfter("what", "waht")
+        assertEquals("what ", text)
+
+        functionalKeyPress(KeyCode.DELETE)
+        assertEquals("waht", text)
+    }
+
     @Test fun `backspace after autocorrect punctuation does not revert stale commit`() {
         setInputType(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_AUTO_CORRECT)
         chainInput("hullo")

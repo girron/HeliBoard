@@ -598,11 +598,20 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     public void performEditorAction(final int actionId) {
         mIC = mParent.getCurrentInputConnection();
         if (isConnected()) {
-            mIC.performEditorAction(actionId);
+            final boolean handled = mIC.performEditorAction(actionId);
+            Log.i(TAG, "OCTOPUS26_ACTION performEditorAction actionId="
+                    + actionId + " handled=" + handled);
+        } else {
+            Log.i(TAG, "OCTOPUS26_ACTION performEditorAction actionId="
+                    + actionId + " connected=false");
         }
     }
 
     public void sendKeyEvent(final KeyEvent keyEvent) {
+        if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+            Log.i(TAG, "OCTOPUS26_ACTION sendKeyEvent KEYCODE_ENTER action="
+                    + keyEvent.getAction());
+        }
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         if (DebugFlags.DEBUG_ENABLED) // no details, might be too sensitive
             Log.d(TAG, "key event with action "+keyEvent.getAction()+", is control: "+Character.isISOControl(keyEvent.getUnicodeChar()));

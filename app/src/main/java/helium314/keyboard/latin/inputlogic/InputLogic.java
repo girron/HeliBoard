@@ -1024,24 +1024,47 @@ public final class InputLogic {
         if (event.getCodePoint() == Constants.CODE_ENTER) {
             final EditorInfo editorInfo = getCurrentInputEditorInfo();
             int imeOptionsActionId = InputTypeUtils.getImeOptionsActionIdFromEditorInfo(editorInfo);
+            final int resolvedActionBeforeRenderedOverride = imeOptionsActionId;
+            final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
+            final int renderedAction = keyboard != null
+                    ? keyboard.mId.getImeAction() : EditorInfo.IME_ACTION_NONE;
+            boolean usedRenderedAction = false;
 
-            // Brave can update the omnibox EditorInfo after the keyboard has already
-            // been rendered. If the visible key is Search/Go but a fresh lookup says
-            // NONE, pressing that key inserts a newline. For Brave, execute the same
-            // action represented by the currently displayed keyboard key.
-            if (editorInfo != null && isBravePackage(editorInfo.packageName)) {
-                final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
-                if (keyboard != null) {
-                    final int renderedAction = keyboard.mId.getImeAction();
-                    if (EditorInfo.IME_ACTION_NONE != renderedAction) {
-                        imeOptionsActionId = renderedAction;
-                    }
-                }
+            // Keep the existing Octopus25 behavior while Octopus26 traces the actual
+            // first-vs-second Search press. The diagnostics below let us determine
+            // whether EditorInfo resolution, the rendered key, performEditorAction,
+            // or an input-session reset is responsible before replacing this path.
+            if (editorInfo != null && isBravePackage(editorInfo.packageName)
+                    && EditorInfo.IME_ACTION_NONE != renderedAction) {
+                imeOptionsActionId = renderedAction;
+                usedRenderedAction = imeOptionsActionId != resolvedActionBeforeRenderedOverride;
+            }
+
+            if (editorInfo != null) {
+                Log.i(TAG, "OCTOPUS26_ACTION enter package=" + editorInfo.packageName
+                        + " inputType=0x" + Integer.toHexString(editorInfo.inputType)
+                        + " imeOptions=0x" + Integer.toHexString(editorInfo.imeOptions)
+                        + " rawAction=" + (editorInfo.imeOptions & EditorInfo.IME_MASK_ACTION)
+                        + " resolvedAction=" + resolvedActionBeforeRenderedOverride
+                        + " renderedAction=" + renderedAction
+                        + " chosenAction=" + imeOptionsActionId
+                        + " usedRenderedAction=" + usedRenderedAction
+                        + " actionId=" + editorInfo.actionId
+                        + " hasActionLabel=" + (editorInfo.actionLabel != null)
+                        + " composing=" + mWordComposer.isComposingWord()
+                        + " typedLength=" + mWordComposer.getTypedWord().length()
+                        + " sel=" + mConnection.getExpectedSelectionStart()
+                        + "," + mConnection.getExpectedSelectionEnd());
+            } else {
+                Log.i(TAG, "OCTOPUS26_ACTION enter editorInfo=null"
+                        + " composing=" + mWordComposer.isComposingWord());
             }
 
             if (InputTypeUtils.IME_ACTION_CUSTOM_LABEL == imeOptionsActionId) {
                 // Either we have an actionLabel and we should performEditorAction with
                 // actionId regardless of its value.
+                Log.i(TAG, "OCTOPUS26_ACTION dispatch=performEditorAction custom actionId="
+                        + editorInfo.actionId);
                 performEditorAction(editorInfo.actionId);
             } else if (EditorInfo.IME_ACTION_NONE != imeOptionsActionId) {
                 // We didn't have an actionLabel, but we had another action to execute.
@@ -1051,10 +1074,13 @@ public final class InputLogic {
                 // code for it - presumably it only handles one. It does not have to be treated
                 // in any specific way: anything that is not IME_ACTION_NONE should be sent to
                 // performEditorAction.
+                Log.i(TAG, "OCTOPUS26_ACTION dispatch=performEditorAction actionId="
+                        + imeOptionsActionId);
                 performEditorAction(imeOptionsActionId);
             } else {
                 // No action label, and the action from imeOptions is NONE: this is a regular
                 // enter key that should input a carriage return.
+                Log.i(TAG, "OCTOPUS26_ACTION dispatch=newline");
                 handleNonSpecialCharacterEvent(event, inputTransaction, handler);
             }
         } else {

@@ -795,13 +795,33 @@ public class LatinIME extends InputMethodService implements
         // To ensure that CandidatesView will never be set.
     }
 
+    private void logOctopus26EditorSession(final String phase,
+            final EditorInfo editorInfo, final boolean restarting) {
+        if (editorInfo == null) {
+            Log.i(TAG, "OCTOPUS26_SESSION " + phase + " restarting=" + restarting
+                    + " editorInfo=null");
+            return;
+        }
+        Log.i(TAG, "OCTOPUS26_SESSION " + phase
+                + " restarting=" + restarting
+                + " package=" + editorInfo.packageName
+                + " inputType=0x" + Integer.toHexString(editorInfo.inputType)
+                + " imeOptions=0x" + Integer.toHexString(editorInfo.imeOptions)
+                + " rawAction=" + (editorInfo.imeOptions & EditorInfo.IME_MASK_ACTION)
+                + " actionId=" + editorInfo.actionId
+                + " hasActionLabel=" + (editorInfo.actionLabel != null)
+                + " initialSel=" + editorInfo.initialSelStart + "," + editorInfo.initialSelEnd);
+    }
+
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        logOctopus26EditorSession("onStartInput", editorInfo, restarting);
         mHandler.onStartInput(editorInfo, restarting);
     }
 
     @Override
     public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
+        logOctopus26EditorSession("onStartInputView", editorInfo, restarting);
         mHandler.onStartInputView(editorInfo, restarting);
         mStatsUtilsManager.onStartInputView();
     }
