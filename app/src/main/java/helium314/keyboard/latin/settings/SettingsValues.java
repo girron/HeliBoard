@@ -355,7 +355,11 @@ public class SettingsValues {
                 && inputClass == InputType.TYPE_CLASS_TEXT
                 && (variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
                     || variation == InputType.TYPE_TEXT_VARIATION_URI);
-        if (octopusWebField) {
+        final boolean octopusGeminiField = !mInputAttributes.mIsPasswordField
+                && inputClass == InputType.TYPE_CLASS_TEXT
+                && "com.google.android.apps.bard".equals(
+                        mInputAttributes.mTargetApplicationPackageName);
+        if (octopusWebField || octopusGeminiField) {
             return true;
         }
         return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)

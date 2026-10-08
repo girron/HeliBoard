@@ -86,6 +86,9 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     /* Bottom-row punctuation/space keys used by Octopus' between-word overlay. */
     private Key mCommaKey;
+    // URL layouts replace the normal comma key with slash. The Octopus split
+    // control may still occupy that same left-of-space position after a word.
+    private Key mOctopusSplitLeftKey;
     private Key mSpaceKey;
     private Key mPeriodKey;
     // Stuff to draw language name on spacebar.
@@ -423,6 +426,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         mPopupKeysKeyboardCache.clear();
 
         mCommaKey = keyboard.getKey(Constants.CODE_COMMA);
+        mOctopusSplitLeftKey = mCommaKey != null
+                ? mCommaKey : keyboard.getKey(Constants.CODE_SLASH);
         mSpaceKey = keyboard.getKey(Constants.CODE_SPACE);
         mPeriodKey = keyboard.getKey(Constants.CODE_PERIOD);
         final int keyHeight = keyboard.mMostCommonKeyHeight - keyboard.mVerticalGap;
@@ -863,20 +868,20 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     private void drawOctopusSplitSpacebarOverlay(@NonNull final Canvas canvas) {
-        if (mCommaKey == null || mSpaceKey == null || mPeriodKey == null) {
+        if (mOctopusSplitLeftKey == null || mSpaceKey == null || mPeriodKey == null) {
             return;
         }
 
-        // Cover the entire normal comma + space + period zone so there is only
-        // one visible Octopus punctuation pair, not the normal pair plus a fake pair.
-        final float left = Math.min(mCommaKey.getDrawX(),
+        // Cover the left punctuation + space + period zone. In normal text the
+        // left key is comma; URL/search layouts put slash in the same position.
+        final float left = Math.min(mOctopusSplitLeftKey.getDrawX(),
                 Math.min(mSpaceKey.getDrawX(), mPeriodKey.getDrawX())) + getPaddingLeft();
-        final float right = Math.max(mCommaKey.getDrawX() + mCommaKey.getDrawWidth(),
+        final float right = Math.max(mOctopusSplitLeftKey.getDrawX() + mOctopusSplitLeftKey.getDrawWidth(),
                 Math.max(mSpaceKey.getDrawX() + mSpaceKey.getDrawWidth(),
                         mPeriodKey.getDrawX() + mPeriodKey.getDrawWidth())) + getPaddingLeft();
-        final float top = Math.min(mCommaKey.getY(),
+        final float top = Math.min(mOctopusSplitLeftKey.getY(),
                 Math.min(mSpaceKey.getY(), mPeriodKey.getY())) + getPaddingTop();
-        final float bottom = Math.max(mCommaKey.getY() + mCommaKey.getHeight(),
+        final float bottom = Math.max(mOctopusSplitLeftKey.getY() + mOctopusSplitLeftKey.getHeight(),
                 Math.max(mSpaceKey.getY() + mSpaceKey.getHeight(),
                         mPeriodKey.getY() + mPeriodKey.getHeight())) + getPaddingTop();
 

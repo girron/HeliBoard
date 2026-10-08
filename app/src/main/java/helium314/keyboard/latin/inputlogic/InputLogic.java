@@ -1456,21 +1456,30 @@ public final class InputLogic {
             inputTransaction.setRequiresUpdateSuggestions();
         } else {
             if (mLastComposedWord.canRevertCommit() && inputTransaction.getSettingsValues().mBackspaceRevertsAutocorrect) {
-                final String lastComposedWord = mLastComposedWord.mTypedWord;
-                revertCommit(inputTransaction);
-                StatsUtils.onRevertAutoCorrect();
-                StatsUtils.onWordCommitUserTyped(lastComposedWord, mWordComposer.isBatchMode());
-                // Restart suggestions when backspacing into a reverted word. This is required for
+                // Octopus may have added/replaced punctuation or a trailing space after
+                // the autocorrect commit. In that case the saved LastComposedWord no longer
+                // describes the text immediately before the cursor and must not be reverted.
+                // Falling through makes this press a normal backspace instead of crashing
+                // (or deleting the wrong characters in non-debug builds).
+                if (!canSafelyRevertLastComposedWord()) {
+                    mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;
+                } else {
+                    final String lastComposedWord = mLastComposedWord.mTypedWord;
+                    revertCommit(inputTransaction);
+                    StatsUtils.onRevertAutoCorrect();
+                    StatsUtils.onWordCommitUserTyped(lastComposedWord, mWordComposer.isBatchMode());
+                    // Restart suggestions when backspacing into a reverted word. This is required for
                 // the final corrected word to be learned, as learning only occurs when suggestions
                 // are active.
                 //
                 // Note: restartSuggestionsOnWordTouchedByCursor is already called for normal
                 // (non-revert) backspace handling.
-                if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
-                        && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
-                    restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(), currentKeyboardScript);
+                    if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
+                            && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
+                        restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(), currentKeyboardScript);
+                    }
+                    return;
                 }
-                return;
             }
             // todo: this is currently disabled, as it causes inconsistencies with textInput, depending whether the end
             //  is part of a word (where we start composing) or not (where we end in code below)
@@ -2083,6 +2092,23 @@ public final class InputLogic {
      *
      * @param inputTransaction The transaction in progress.
      */
+    private boolean canSafelyRevertLastComposedWord() {
+        final CharSequence committedWord = mLastComposedWord.mCommittedWord;
+        final String separatorString = mLastComposedWord.mSeparatorString;
+        final int expectedLength = committedWord.length() + separatorString.length();
+        if (expectedLength <= 0) {
+            return false;
+        }
+        final CharSequence beforeCursor = mConnection.getTextBeforeCursor(expectedLength, 0);
+        if (beforeCursor == null || beforeCursor.length() != expectedLength) {
+            return false;
+        }
+        return TextUtils.equals(committedWord,
+                        beforeCursor.subSequence(0, committedWord.length()))
+                && TextUtils.equals(separatorString,
+                        beforeCursor.subSequence(committedWord.length(), expectedLength));
+    }
+
     private void revertCommit(final InputTransaction inputTransaction) {
         final CharSequence originallyTypedWord = mLastComposedWord.mTypedWord;
         final CharSequence committedWord = mLastComposedWord.mCommittedWord;
@@ -2613,7 +2639,11 @@ public final class InputLogic {
         }
         final SuggestedWordInfo autoCorrectionOrNull = mWordComposer.getAutoCorrectionOrNull();
         final String typedWord = mWordComposer.getTypedWord();
-        final String stringToCommit = (autoCorrectionOrNull != null) ? autoCorrectionOrNull.mWord : typedWord;
+        // "ok" is a valid high-frequency conversational word. The decoder can rank
+        // "on" above it for two-key input, which makes ordinary "ok " turn into "on ".
+        final boolean preserveOctopusOk = "ok".equalsIgnoreCase(typedWord);
+        final String stringToCommit = (autoCorrectionOrNull != null && !preserveOctopusOk)
+                ? autoCorrectionOrNull.mWord : typedWord;
         if (stringToCommit != null) {
             final boolean isBatchMode = mWordComposer.isBatchMode();
             commitChosenWord(settingsValues, stringToCommit, LastComposedWord.COMMIT_TYPE_DECIDED_WORD, separator);

@@ -765,7 +765,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 mOctopusSplitSpaceCandidate = true;
                 if (octopusCode == Constants.CODE_PERIOD) {
                     mOctopusSplitSpaceRightHalf = true;
-                } else if (octopusCode == Constants.CODE_COMMA) {
+                } else if (octopusCode == Constants.CODE_COMMA
+                        || octopusCode == Constants.CODE_SLASH) {
                     mOctopusSplitSpaceRightHalf = false;
                 } else {
                     // The actual space key is the middle portion of the visual pair.
@@ -821,6 +822,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         final int code = key.getCode();
         return code == Constants.CODE_COMMA
+                || code == Constants.CODE_SLASH
                 || code == Constants.CODE_SPACE
                 || code == Constants.CODE_PERIOD;
     }

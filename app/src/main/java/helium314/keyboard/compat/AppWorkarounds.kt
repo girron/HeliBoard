@@ -28,7 +28,25 @@ object AppWorkarounds {
             // Looks like Google decided to set inputType multiline and imeOptions no_enter_action
             // on their search bar in Pixel launcher, and all keyboards ignore the flags because otherwise
             // they would actually not perform the search action on action key. See https://github.com/HeliBorg/HeliBoard/issues/1989
-            "com.google.android.apps.nexuslauncher" -> if (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0) imeOptions - EditorInfo.IME_FLAG_NO_ENTER_ACTION else imeOptions
+            "com.google.android.apps.nexuslauncher" ->
+                if (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0)
+                    imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION.inv()
+                else imeOptions
+
+            // Brave's omnibox can expose an explicit Search/Go action together with
+            // IME_FLAG_NO_ENTER_ACTION. The key is drawn as Search, but honoring the flag
+            // turns the press into a literal newline. If Brave supplied a real action,
+            // prefer that action exactly as the key label indicates.
+            "com.brave.browser", "com.brave.browser_beta", "com.brave.browser_nightly" -> {
+                val action = imeOptions and EditorInfo.IME_MASK_ACTION
+                if (action != EditorInfo.IME_ACTION_NONE
+                    && action != EditorInfo.IME_ACTION_UNSPECIFIED
+                    && imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
+                ) {
+                    imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION.inv()
+                } else imeOptions
+            }
+
             else -> imeOptions
         }
     }
