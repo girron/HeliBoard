@@ -24,6 +24,18 @@ The project builds on HeliBoard's existing keyboard capabilities, including:
 
 For details about features inherited from HeliBoard, see the [upstream wiki and FAQ](https://github.com/HeliBorg/HeliBoard/wiki) and the [layout documentation](layouts.md).
 
+## Inspiration and origins
+
+Octopus Keyboard for Android draws inspiration from two iOS keyboards that have shaped my typing experience.
+
+The original **Octopus Keyboard** jailbreak tweak, developed by Mario Hros (K3A), brought BlackBerry 10-style predictive typing to the iPhone, displaying word suggestions directly on individual keys.
+
+When Octopus stopped receiving updates, I purchased **Crimson Keyboard** upon its release and have continued using it ever since. Both keyboards have been central inspirations for bringing this distinctive predictive typing experience to Android.
+
+Built on the open-source **HeliBoard** project, Octopus Keyboard for Android aims to recreate and refine that experience while retaining the flexibility and customization of a modern Android keyboard.
+
+This is an independent project, unaffiliated with the original Octopus Keyboard, Crimson Keyboard, or HeliBoard developers.
+
 ## Try a development build
 
 There is **no general beta release yet**. Until a reviewed beta APK is published, builds are primarily for development and testing.
