@@ -64,6 +64,7 @@ import helium314.keyboard.latin.utils.GestureDataGatheringKt;
 import helium314.keyboard.latin.utils.InputTypeUtils;
 import helium314.keyboard.latin.utils.IntentUtils;
 import helium314.keyboard.latin.utils.Log;
+import helium314.keyboard.latin.utils.NgramContextUtils;
 import helium314.keyboard.latin.utils.BackgroundGatheringCache;
 import helium314.keyboard.latin.utils.RecapitalizeMode;
 import helium314.keyboard.latin.utils.RecapitalizeStatus;
@@ -2268,9 +2269,32 @@ public final class InputLogic {
     public NgramContext getNgramContextFromNthPreviousWordForSuggestion(
             final SpacingAndPunctuations spacingAndPunctuations, final int nthPreviousWord) {
         if (spacingAndPunctuations.mCurrentLanguageHasSpaces) {
-            // If we are typing in a language with spaces we can just look up the previous
-            // word information from textview.
-            return mConnection.getNgramContextFromNthPreviousWord(spacingAndPunctuations, nthPreviousWord);
+            // HeliBoard treats a previous token ending in any word separator as unclear
+            // n-gram context. That makes predictions disappear after comma/semicolon/colon.
+            // For Octopus next-word prediction only, ignore that trailing mid-sentence
+            // punctuation while preserving the actual editor text.
+            if (nthPreviousWord == 1 && !mWordComposer.isComposingWord()) {
+                final CharSequence beforeCursor = mConnection.getTextBeforeCursor(128, 0);
+                if (!TextUtils.isEmpty(beforeCursor)) {
+                    int index = beforeCursor.length();
+                    while (index > 0) {
+                        final int cp = Character.codePointBefore(beforeCursor, index);
+                        if (!Character.isWhitespace(cp)) {
+                            if (cp == Constants.CODE_COMMA || cp == ';' || cp == ':') {
+                                final int cpLength = Character.charCount(cp);
+                                final StringBuilder normalized = new StringBuilder(beforeCursor);
+                                normalized.delete(index - cpLength, index);
+                                return NgramContextUtils.getNgramContextFromNthPreviousWord(
+                                        normalized, spacingAndPunctuations, nthPreviousWord);
+                            }
+                            break;
+                        }
+                        index -= Character.charCount(cp);
+                    }
+                }
+            }
+            return mConnection.getNgramContextFromNthPreviousWord(
+                    spacingAndPunctuations, nthPreviousWord);
         }
         if (LastComposedWord.NOT_A_COMPOSED_WORD == mLastComposedWord) {
             return NgramContext.BEGINNING_OF_SENTENCE;
