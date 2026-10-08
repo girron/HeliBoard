@@ -1330,13 +1330,16 @@ public final class InputLogic {
             // words must get the same punctuation spacing. Only append at the end of
             // ordinary text fields, after a word, so edits inside text, URLs and
             // decimal punctuation are not changed by this path.
+            final int octopusCodePointBeforeCursor = mConnection.getCodePointBeforeCursor();
             final boolean appendOctopusPunctuationSpace =
                     settingsValues.mInputAttributes.mIsGeneralTextInput
                     && (codePoint == Constants.CODE_PERIOD || codePoint == Constants.CODE_COMMA
                             || codePoint == '?' || codePoint == '!')
                     && !mConnection.hasSelection()
                     && !mConnection.hasTextAfterCursor()
-                    && Character.isLetter(mConnection.getCodePointBeforeCursor());
+                    && (Character.isLetter(octopusCodePointBeforeCursor)
+                            || ((codePoint == '?' || codePoint == '!')
+                                    && Character.isDigit(octopusCodePointBeforeCursor)));
             mConnection.commitCodePoint(codePoint);
             if (appendOctopusPunctuationSpace) {
                 mConnection.commitCodePoint(Constants.CODE_SPACE);
