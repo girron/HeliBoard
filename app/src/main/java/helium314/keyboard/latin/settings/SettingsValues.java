@@ -349,11 +349,29 @@ public class SettingsValues {
                 && (mAutoCorrectEnabled || mSuggestionsEnabled);
     }
 
+    private boolean isOctopusWebField() {
+        final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
+        final int variation = mInputAttributes.mInputType & InputType.TYPE_MASK_VARIATION;
+        return !mInputAttributes.mIsPasswordField
+                && inputClass == InputType.TYPE_CLASS_TEXT
+                && (variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
+                    || variation == InputType.TYPE_TEXT_VARIATION_URI);
+    }
+
+    /**
+     * Lookup modes that may use HeliBoard's normal composing-region machinery.
+     * Web/URI fields keep the proven Octopus23 behavior; ordinary fields follow
+     * HeliBoard's normal suggestion/autocorrect settings.
+     */
+    public boolean needsComposingSuggestionLookup() {
+        return isOctopusWebField() || needsNormalSuggestionLookup();
+    }
+
     /**
      * True when Octopus is deliberately looking up candidates only so it can paint
-     * predictions on the keys. In this mode the app/user settings would normally
-     * suppress dictionary lookup, so the override must not silently enable
-     * autocorrection or user-history learning as a side effect.
+     * predictions on the keys. These editors asked HeliBoard not to use suggestions,
+     * so Octopus must not turn on composing spans, autocorrection, or dictionary
+     * learning merely to obtain prediction candidates.
      */
     public boolean isOctopusPredictionOnlyLookup() {
         final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
@@ -364,25 +382,10 @@ public class SettingsValues {
     }
 
     public boolean needsToLookupSuggestions() {
-        // Octopus predictions live on the keys, so they still need dictionary
-        // candidates in browser text/search fields even when the app disables
-        // the normal suggestion strip. Keep password handling untouched.
-        final int inputClass = mInputAttributes.mInputType & InputType.TYPE_MASK_CLASS;
-        final int variation = mInputAttributes.mInputType & InputType.TYPE_MASK_VARIATION;
-        final boolean octopusWebField = !mInputAttributes.mIsPasswordField
-                && inputClass == InputType.TYPE_CLASS_TEXT
-                && (variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
-                    || variation == InputType.TYPE_TEXT_VARIATION_URI);
-
-        // Some modern Compose-based editors (Gemini is one example) mark an otherwise
-        // ordinary text box as "no suggestions". Octopus still needs candidates for
-        // its per-key prediction UI, but isOctopusPredictionOnlyLookup() keeps that
-        // override isolated from autocorrection and learning.
-        final boolean octopusGeneralTextField = !mInputAttributes.mIsPasswordField
-                && inputClass == InputType.TYPE_CLASS_TEXT
-                && mInputAttributes.mIsGeneralTextInput;
-
-        return octopusWebField || octopusGeneralTextField || needsNormalSuggestionLookup();
+        // Octopus predictions live on the keys. Keep the established web/URI lookup
+        // plus normal HeliBoard lookup, and add a read-only candidate path for safe
+        // general text editors such as Gemini that suppress a conventional strip.
+        return needsComposingSuggestionLookup() || isOctopusPredictionOnlyLookup();
     }
 
     public boolean isWordSeparator(final int code) {
