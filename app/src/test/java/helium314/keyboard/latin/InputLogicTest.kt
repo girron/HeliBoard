@@ -673,7 +673,12 @@ class InputLogicTest {
         val words = SuggestedWords(ArrayList(listOf(typed, corrected)), null, typed, false, true, false, 0, 0)
         latinIME.mInputLogic.setSuggestedWords(words)
 
-        input('.')
+        // Bypass input()'s generic "typed character was appended verbatim" assertion:
+        // this punctuation press intentionally commits an autocorrection and therefore
+        // changes more than just the punctuation character.
+        latinIME.onEvent(Event.createEventForCodePointFromUnknownSource('.'.code))
+        handleMessages()
+        checkConnectionConsistency()
         assertEquals("hello. ", text)
 
         // Octopus punctuation has changed the suffix after the autocorrect commit.
@@ -684,7 +689,6 @@ class InputLogicTest {
     }
 
     @Test fun `prediction-only lookup does not autocorrect or learn typed words`() {
-        latinIME.prefs().edit { putBoolean(Settings.PREF_MORE_AUTO_CORRECTION, true) }
         setInputType(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
         lastAddedWord = ""
 
