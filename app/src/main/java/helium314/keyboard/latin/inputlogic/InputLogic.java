@@ -2660,7 +2660,9 @@ public final class InputLogic {
             // INPUT_STYLE_TYPING.
             performUpdateSuggestionStripSync(settingsValues, SuggestedWords.INPUT_STYLE_TYPING);
         }
-        final SuggestedWordInfo autoCorrectionOrNull = mWordComposer.getAutoCorrectionOrNull();
+        final SuggestedWordInfo autoCorrectionOrNull =
+                settingsValues.isOctopusPredictionOnlyLookup()
+                        ? null : mWordComposer.getAutoCorrectionOrNull();
         final String typedWord = mWordComposer.getTypedWord();
         // "ok" is a valid high-frequency conversational word. The decoder can rank
         // "on" above it for two-key input, which makes ordinary "ok " turn into "on ".
