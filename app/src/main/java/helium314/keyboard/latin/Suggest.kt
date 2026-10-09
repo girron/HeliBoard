@@ -79,6 +79,10 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion)
             else mDictionaryFacilitator.getSuggestionResults(wordComposer.composedDataSnapshot, ngramContext, keyboard,
                 settingsValuesForSuggestion, SESSION_ID_TYPING, inputStyleIfNotPrediction)
+        if (typedWordString.length >= 2 && octopus27Probe(typedWordString)) {
+            Log.i(TAG, "OCTOPUS27_SUGGEST raw word=$typedWordString composing=${wordComposer.isComposingWord} correctionEnabled=$isCorrectionEnabled mainReady=${mDictionaryFacilitator.hasAtLeastOneInitializedMainDictionary()} candidates=" +
+                suggestionResults.joinToString(" | ") { "${it.mWord}:${it.mScore}:${it.mSourceDict.mDictType}:${it.mKindAndFlags}" })
+        }
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
         val capsMode = getCapsModeForTyping(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)
@@ -148,6 +152,10 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                         Dictionary.DICTIONARY_USER_TYPED, SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
                 )
             }
+        }
+        if (typedWordString.length >= 2 && octopus27Probe(typedWordString)) {
+            Log.i(TAG, "OCTOPUS27_DECISION word=$typedWordString original=${typedWordFirstOccurrenceWordInfo?.mWord} source=${typedWordFirstOccurrenceWordInfo?.mSourceDict?.mDictType} originalScore=${typedWordFirstOccurrenceWordInfo?.mScore} first=${suggestionsContainer.firstOrNull()?.mWord} firstScore=${suggestionsContainer.firstOrNull()?.mScore} allows=$allowsToBeAutoCorrected correction=$hasAutoCorrection composing=${wordComposer.isComposingWord} final=" +
+                suggestionsList.joinToString(" | ") { "${it.mWord}:${it.mScore}:${it.mSourceDict.mDictType}:${it.mKindAndFlags}" })
         }
         val isTypedWordValid = firstOccurrenceOfTypedWordInSuggestions > -1 || (!resultsArePredictions && !allowsToBeAutoCorrected)
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions, typedWordInfo,
@@ -363,6 +371,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     }
 
     companion object {
+        private fun octopus27Probe(word: String): Boolean = word.equals("waht", true) || word.equals("whta", true) || word.equals("what", true) || "waht".startsWith(word.lowercase()) || "whta".startsWith(word.lowercase())
         private val TAG: String = Suggest::class.java.simpleName
 
         // Session id for {@link #getSuggestedWords(WordComposer,String,ProximityInfo,boolean,int)}.
