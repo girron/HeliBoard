@@ -614,6 +614,15 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
      * Returns dictionary content required for syncing.
      */
     public WordProperty[] getWordPropertiesForSyncing() {
+        return getWordPropertiesForSyncing(TIMEOUT_FOR_READ_OPS_IN_MILLISECONDS);
+    }
+
+    /** The vocabulary browser runs off the UI thread and may enumerate many learned words. */
+    public WordProperty[] getWordPropertiesForVocabularyManager() {
+        return getWordPropertiesForSyncing(5_000);
+    }
+
+    private WordProperty[] getWordPropertiesForSyncing(final int timeoutMillis) {
         reloadDictionaryIfRequired();
         final AsyncResultHolder<WordProperty[]> result =
                 new AsyncResultHolder<>("WordPropertiesForSync");
@@ -638,6 +647,6 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
             result.set(wordPropertyList.toArray(new WordProperty[0]));
         });
         // TODO: Figure out the best timeout duration for this API.
-        return result.get(DEFAULT_WORD_PROPERTIES_FOR_SYNC, TIMEOUT_FOR_READ_OPS_IN_MILLISECONDS);
+        return result.get(DEFAULT_WORD_PROPERTIES_FOR_SYNC, timeoutMillis);
     }
 }
