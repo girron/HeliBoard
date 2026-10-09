@@ -29,6 +29,7 @@ import helium314.keyboard.latin.dictionary.ExpandableBinaryDictionary
 import helium314.keyboard.latin.dictionary.UserBinaryDictionary
 import helium314.keyboard.latin.permissions.PermissionsUtil
 import helium314.keyboard.latin.personalization.UserHistoryDictionary
+import helium314.keyboard.latin.personalization.OctopusVocabularyManager
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SettingsValuesForSuggestion
 import helium314.keyboard.latin.utils.Log
@@ -338,6 +339,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         timeStampInSeconds: Int, blockPotentiallyOffensive: Boolean
     ) {
         val userHistoryDictionary = dictionaryGroup.getSubDict(Dictionary.TYPE_USER_HISTORY) ?: return
+        if (dictionaryGroup.isForgotten(word)) return
 
         val mainFreq = dictionaryGroup.getDict(Dictionary.TYPE_MAIN)?.getFrequency(word) ?: Dictionary.NOT_A_PROBABILITY
         if (mainFreq == 0 && blockPotentiallyOffensive)
@@ -393,6 +395,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     private fun addToPersonalDictionaryIfInvalidButInHistory(word: String) {
         if (word.length <= 1) return
         val dictionaryGroup = clearlyPreferredDictionaryGroup ?: return
+        if (dictionaryGroup.isForgotten(word)) return
         val userDict = dictionaryGroup.getSubDict(Dictionary.TYPE_USER) ?: return
         val userHistoryDict = dictionaryGroup.getSubDict(Dictionary.TYPE_USER_HISTORY) ?: return
         if (isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, dictionaryGroup))
@@ -538,7 +541,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
             for (info in dictionarySuggestions) {
                 val word = info.word
-                if (isBlacklisted(word) || SupportedEmojis.isUnsupported(word)) // don't add blacklisted words and unsupported emojis
+                if (isBlacklisted(word) || dictGroup.isForgotten(word) || SupportedEmojis.isUnsupported(word)) // don't add blacklisted words and unsupported emojis
                     continue
                 if (checkForGarbage
                     // consider the user might use custom main dictionary containing shortcuts
@@ -576,7 +579,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     // todo: move into dictionaryGroup?
     private fun isValidWord(word: String, dictionariesToCheck: Array<String>, dictionaryGroup: DictionaryGroup): Boolean {
-        if (word.isEmpty() || dictionaryGroup.isBlacklisted(word)) return false
+        if (word.isEmpty() || dictionaryGroup.isBlacklisted(word) || dictionaryGroup.isForgotten(word)) return false
         return dictionariesToCheck.any { dictionaryGroup.getDict(it)?.isValidWord(word) == true }
     }
 
@@ -704,8 +707,12 @@ private class DictionaryGroup(
     val locale: Locale = Locale(""),
     private var mainDict: Dictionary? = null,
     subDicts: Map<String, ExpandableBinaryDictionary> = emptyMap(),
-    context: Context? = null
+    private val context: Context? = null
 ) {
+    fun isForgotten(word: String): Boolean = context?.let {
+        OctopusVocabularyManager.isForgotten(it, locale, word)
+    } == true
+
     private val subDicts: ConcurrentHashMap<String, ExpandableBinaryDictionary> = ConcurrentHashMap(subDicts)
 
     /** Removes a word from all dictionaries in this group. If the word is in a read-only dictionary, it is blacklisted. */
