@@ -2,7 +2,6 @@
 package helium314.keyboard.latin.personalization
 
 import android.content.Context
-import helium314.keyboard.latin.makedict.WordProperty
 import java.util.Locale
 
 /**
@@ -38,7 +37,7 @@ object OctopusVocabularyManager {
     fun learnedWords(context: Context, locale: Locale): List<String> {
         val history = PersonalizationHelper.getUserHistoryDictionary(context, locale)
         return history.wordPropertiesForSyncing.orEmpty()
-            .map(WordProperty::mWord)
+            .map { it.mWord }
             .filter { it.isNotBlank() && !isForgotten(context, locale, it) }
             .distinct()
             .sortedWith(String.CASE_INSENSITIVE_ORDER)
