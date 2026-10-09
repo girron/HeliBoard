@@ -522,12 +522,22 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         proximityInfoHandle: Long, weightOfLangModelVsSpatialModel: FloatArray, dictGroup: DictionaryGroup
     ): List<SuggestedWordInfo> {
         val suggestions = ArrayList<SuggestedWordInfo>()
+        val probeWord = composedData.mTypedWord
+        val probe = probeWord.length >= 2 && (probeWord.equals("waht", true) || probeWord.equals("whta", true) || "waht".startsWith(probeWord.lowercase()) || "whta".startsWith(probeWord.lowercase()))
+        if (probe) {
+            val main = dictGroup.getDict(Dictionary.TYPE_MAIN)
+            val history = dictGroup.getSubDict(Dictionary.TYPE_USER_HISTORY)
+            Log.i(TAG, "OCTOPUS27_DICT word=$probeWord locale=${dictGroup.locale} mainReady=${main?.isInitialized} whatMainFrequency=${main?.getFrequency("what")} whatMainValid=${main?.isValidWord("what")} wahtHistoryFrequency=${history?.getFrequency("waht")} whtaHistoryFrequency=${history?.getFrequency("whta")} wahtMainValid=${main?.isValidWord("waht")} wahtHistoryValid=${history?.isValidWord("waht")} wahtBlacklisted=${dictGroup.isBlacklisted("waht")} whatBlacklisted=${dictGroup.isBlacklisted("what")}")
+        }
         val weightForLocale = dictGroup.getWeightForLocale(dictionaryGroups, composedData.mIsBatchMode)
         for (dictType in DictionaryFacilitator.ALL_DICTIONARY_TYPES) {
             val dictionary = dictGroup.getDict(dictType) ?: continue
             val dictionarySuggestions = dictionary.getSuggestions(composedData, ngramContext, proximityInfoHandle,
                 settingsValuesForSuggestion, sessionId, weightForLocale, weightOfLangModelVsSpatialModel
             ) ?: continue
+
+            if (probe) Log.i(TAG, "OCTOPUS27_SOURCE word=$probeWord dict=$dictType candidates=" +
+                dictionarySuggestions.joinToString(" | ") { "${it.mWord}:${it.mScore}:${it.mSourceDict.mDictType}:${it.mKindAndFlags}" })
 
             // For some reason "garbage" words are produced when glide typing. For user history
             // and main dictionaries we can filter them out by checking whether the dictionary
