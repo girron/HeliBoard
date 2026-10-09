@@ -2710,6 +2710,14 @@ public final class InputLogic {
         final boolean preserveOctopusOk = "ok".equalsIgnoreCase(typedWord);
         final String stringToCommit = (autoCorrectionOrNull != null && !preserveOctopusOk)
                 ? autoCorrectionOrNull.mWord : typedWord;
+        if ("waht".equalsIgnoreCase(typedWord) || "whta".equalsIgnoreCase(typedWord)) {
+            Log.i(TAG, "OCTOPUS27_SPACE word=" + typedWord
+                    + " composing=" + mWordComposer.isComposingWord()
+                    + " correctionEnabled=" + settingsValues.mAutoCorrectEnabled
+                    + " selected=" + (autoCorrectionOrNull == null ? "null" : autoCorrectionOrNull.mWord)
+                    + " willAutoCorrect=" + mSuggestedWords.mWillAutoCorrect
+                    + " committed=" + stringToCommit);
+        }
         if (stringToCommit != null) {
             final boolean isBatchMode = mWordComposer.isBatchMode();
             commitChosenWord(settingsValues, stringToCommit, LastComposedWord.COMMIT_TYPE_DECIDED_WORD, separator);
