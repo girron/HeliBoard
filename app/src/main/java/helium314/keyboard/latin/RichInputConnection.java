@@ -715,9 +715,18 @@ public final class RichInputConnection implements PrivateCommandPerformer {
                 // a sanity check whether the wanted text has been set.
                 // Note that the check may also fail because the text field is not yet updated, so we don't want to check everything!
                 final CharSequence lastChar = mIC.getTextBeforeCursor(1, 0);
-                if (lastChar == null || lastChar.length() == 0 || text.charAt(text.length() - 1) != lastChar.charAt(0)) {
-                    Log.w(TAG, "did set " + text + ", but got " + mIC.getTextBeforeCursor(text.length(), 0) + " as last character");
-                    return false;
+                if (lastChar == null || lastChar.length() == 0
+                        || text.charAt(text.length() - 1) != lastChar.charAt(lastChar.length() - 1)) {
+                    // Some editors (and test InputConnections) return an incorrect one-character
+                    // window while returning the actual composed text when asked for its full
+                    // length. Verify that before discarding the composing state.
+                    final CharSequence beforeCursor = mIC.getTextBeforeCursor(text.length(), 0);
+                    if (beforeCursor == null || beforeCursor.length() < text.length()
+                            || !TextUtils.equals(text, beforeCursor.subSequence(
+                                    beforeCursor.length() - text.length(), beforeCursor.length()))) {
+                        Log.w(TAG, "did set " + text + ", but got " + beforeCursor + " before cursor");
+                        return false;
+                    }
                 }
             }
         }
