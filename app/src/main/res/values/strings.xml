@@ -116,6 +116,8 @@
     <string name="auto_cap_summary">Capitalize the first word of each sentence</string>
     <!-- Option to edit personal dictionary.-->
     <string name="edit_personal_dictionary">Personal dictionary</string>
+    <string name="manage_vocabulary">Manage Vocabulary</string>
+    <string name="manage_vocabulary_summary">View learned words, forget unwanted words, or clear typing history</string>
     <!-- Name of the main dictionary, as opposed to auxiliary dictionaries (medical/entertainment/sports...) -->
     <string name="main_dictionary">Main dictionary</string>
     <!-- Option to enable showing suggestions -->
