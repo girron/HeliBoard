@@ -36,7 +36,7 @@ object OctopusVocabularyManager {
      * system personal dictionary. Work should be dispatched off the UI thread. */
     fun learnedWords(context: Context, locale: Locale): List<String> {
         val history = PersonalizationHelper.getUserHistoryDictionary(context, locale)
-        return history.wordPropertiesForSyncing.orEmpty()
+        return history.wordPropertiesForVocabularyManager.orEmpty()
             .map { it.mWord }
             .filter { it.isNotBlank() && !isForgotten(context, locale, it) }
             .distinct()
