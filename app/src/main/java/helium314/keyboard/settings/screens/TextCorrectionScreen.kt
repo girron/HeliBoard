@@ -106,10 +106,10 @@ fun TextCorrectionScreen(
 }
 
 fun createCorrectionSettings(context: Context) = listOf(
-    Setting(context, SettingsWithoutKey.MANAGE_VOCABULARY, R.string.edit_personal_dictionary) {
+    Setting(context, SettingsWithoutKey.MANAGE_VOCABULARY, R.string.manage_vocabulary, R.string.manage_vocabulary_summary) {
         Preference(
-            name = "Manage Vocabulary",
-            description = "View learned words, forget unwanted words, or clear typing history",
+            name = stringResource(R.string.manage_vocabulary),
+            description = stringResource(R.string.manage_vocabulary_summary),
             onClick = { SettingsDestination.navigateTo(SettingsDestination.ManageVocabulary) },
         ) { NextScreenIcon() }
     },
